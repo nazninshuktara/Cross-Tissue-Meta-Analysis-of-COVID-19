@@ -26,7 +26,7 @@ This study therefore combines dataset-level differential-expression analysis wit
 
 ## Datasets
 ### Discovery Datasets
-9 GEO datasets across 8 tissue types, including 307 samples (155 COVID-19, 66 controls), are included in the discovery meta-analysis.
+Nine GEO datasets spanning eight tissue types were included in the discovery meta-analysis, comprising 307 biological samples (155 COVID-19 and 66 controls).
 
 | **GEO accession** | **Tissue type** | **Sample size** |
 |---|---|---|
@@ -40,7 +40,7 @@ This study therefore combines dataset-level differential-expression analysis wit
 | GSE149312 | Gut organoids | 22 |
 | GSE182917 | Liver, Kidney, Lung, Heart, Spleen | 24 |
 
-Technical replicates are collapsed before differential-expression analysis where applicable.
+> **Data processing:** Raw sequencing data were obtained from the Sequence Read Archive (SRA). Technical replicates were identified from study metadata and collapsed at the appropriate level before differential-expression analysis. Dataset-specific differential expression was performed independently before cross-tissue meta-analysis.
 
 ### Independent Validation Datasets
 6 independent GEO datasets are used to evaluate the reproducibility of the core signature:
@@ -210,3 +210,81 @@ The analysis is organized as a numbered and reproducible computational pipeline.
                  │ CELLxGENE Census        │
                  └─────────────────────────┘
 ```
+---
+
+## Project Structure
+```
+Cross-Tissue-Meta-Analysis-of-COVID-19/
+│
+├── pixi.toml
+├── pixi.lock
+├── README.md
+├── LICENSE
+├── CITATION.cff
+│
+├── scripts/
+│   ├── 00_*.R
+│   ├── 01_download_geo_sra.sh
+│   ├── 02_*.R
+│   ├── 03_*.R
+│   ├── 04_*.R
+│   ├── 05_*.R
+│   ├── 06_meta_analysis.R
+│   ├── 07_*.R
+│   ├── 08_*.R
+│   ├── ...
+│   ├── 18_*.R
+│   ├── 19_*.R
+│   ├── 20_*.R
+│   │
+│   └── SCRIPT_MANIFEST.md
+│
+├── data/
+│   ├── metadata/
+│   │   ├── discovery/
+│   │   ├── validation/
+│   │   └── influenza/
+│   │
+│   ├── raw/
+│   │   ├── sra/
+│   │   └── fastq/
+│   │
+│   └── processed/
+│       ├── salmon/
+│       ├── tximport/
+│       ├── collapsed/
+│       └── counts/
+│
+├── outputs/
+│   ├── qc/
+│   └── salmon_out/
+│
+├── results/
+│   ├── tables/
+│   │   ├── differential_expression/
+│   │   ├── meta_analysis/
+│   │   ├── core_signature/
+│   │   ├── validation/
+│   │   └── classifier/
+│   │
+│   └── figures/
+│
+├── inputs/
+│   ├── tables/
+│   └── figures/
+│
+└── docs/
+```
+---
+
+## Reproducibility
+The computational environment is managed using Pixi.
+
+The repository records the software environment through:
+
+- `pixi.toml`
+- `pixi.lock`
+
+The analysis is implemented as numbered scripts in `scripts/`, with metadata, intermediate data, quality-control outputs, results, and supplementary materials organized according to the project structure.
+
+---
