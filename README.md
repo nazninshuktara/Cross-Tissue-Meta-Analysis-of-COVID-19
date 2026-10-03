@@ -1,4 +1,4 @@
-<img width="262" height="30" alt="image" src="https://github.com/user-attachments/assets/a47302e5-5c1c-404b-83da-7f9dc4e780f8" /># Cross-Tissue-Meta-Analysis-of-COVID-19
+# Cross-Tissue-Meta-Analysis-of-COVID-19
 A two-tier **tissue-independent immune transcriptional signature of COVID-19** identified through cross-tissue random-effects meta-analysis of bulk RNA-seq datasets.
 
 ---
