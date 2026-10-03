@@ -293,6 +293,13 @@ def assign_disease_group(dataset_id, disease_status):
         }:
             return "COVID-19"
 
+        if disease in {
+            "lung squamous cell carcinoma",
+            "pneumonia",
+            "pulmonary bronchiectasis",
+        }:
+            return "Control"
+
     return NA
 
 def normalize_severity(gse, row):
