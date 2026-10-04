@@ -1,0 +1,11 @@
+{
+    "salmon_version": "1.11.4",
+    "index": "/home/T19376007/deepbio_projects/rnaseq/salmon-rnaseq/inputs/human_salmon_index",
+    "libType": "A",
+    "mates1": "/home/T19376007/COVID19/GSE208342/fastq/SRR20277664_1.fastq.gz",
+    "mates2": "/home/T19376007/COVID19/GSE208342/fastq/SRR20277664_2.fastq.gz",
+    "threads": "2",
+    "validateMappings": [],
+    "output": "/home/T19376007/deepbio_projects/rnaseq/salmon-rnaseq/outputs/salmon_out/GSE208342/SRR20277664",
+    "auxDir": "aux_info"
+}
