@@ -15,11 +15,18 @@ r-base = "4.5.*"
 sra-tools = ">=3.2,<4"
 parallel-fastq-dump = "==0.6.7"
 
-# Quality Control
+# Quality Check
 fastqc = "==0.12.1"
 multiqc = ">=1.33,<2"
 
 # Transcript Quantification
 salmon = ">=1.10,<2"
+
+# Python Analysis
 pandas = ">=3.0.6,<4"
 
+# R Analysis
+bioconductor-tximport = ">=1.38.2,<2"
+r-readr = ">=2.2.0,<3"
+r-dplyr = ">=1.2.1,<2"
+r-tibble = ">=3.3.1,<4"
