@@ -1,0 +1,51 @@
+[2026-10-06 05:37:01.040] [jointLog] [info] setting maxHashResizeThreads to 4
+[2026-10-06 05:37:01.040] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+[2026-10-06 05:37:01.040] [jointLog] [info] Usage of --validateMappings implies use of minScoreFraction. Since not explicitly specified, it is being set to 0.65
+[2026-10-06 05:37:01.040] [jointLog] [info] Setting consensusSlack to selective-alignment default of 0.35.
+[2026-10-06 05:37:01.040] [jointLog] [info] parsing read library format
+[2026-10-06 05:37:01.040] [jointLog] [info] There is 1 library.
+[2026-10-06 05:37:01.049] [jointLog] [info] Loading pufferfish index
+[2026-10-06 05:37:01.052] [jointLog] [info] Loading dense pufferfish index.
+[2026-10-06 05:39:04.103] [jointLog] [info] done
+[2026-10-06 05:39:04.224] [jointLog] [info] Index contained 238,636 targets
+[2026-10-06 05:39:04.337] [jointLog] [info] Number of decoys : 194
+[2026-10-06 05:39:04.337] [jointLog] [info] First decoy index : 238,404 
+[2026-10-06 05:41:23.705] [fileLog] [info] 
+At end of round 0
+==================
+Observed 9908052 total fragments (9908052 in most recent round)
+
+[2026-10-06 05:41:23.704] [jointLog] [info] Computed 107,120 rich equivalence classes for further processing
+[2026-10-06 05:41:23.704] [jointLog] [info] Counted 7,623,572 total reads in the equivalence classes 
+[2026-10-06 05:41:23.708] [jointLog] [info] Number of mappings discarded because of alignment score : 2,894,084
+[2026-10-06 05:41:23.708] [jointLog] [info] Number of fragments entirely discarded because of alignment score : 418,524
+[2026-10-06 05:41:23.708] [jointLog] [info] Number of fragments discarded because they are best-mapped to decoys : 240,034
+[2026-10-06 05:41:23.708] [jointLog] [info] Number of fragments discarded because they have only dovetail (discordant) mappings to valid targets : 0
+[2026-10-06 05:41:23.708] [jointLog] [info] Mapping rate = 76.9432%
+
+[2026-10-06 05:41:23.708] [jointLog] [info] finished quantifyLibrary()
+[2026-10-06 05:41:23.708] [jointLog] [info] Starting optimizer
+[2026-10-06 05:41:23.837] [jointLog] [info] Marked 0 weighted equivalence classes as degenerate
+[2026-10-06 05:41:23.879] [jointLog] [info] iteration = 0 | max rel diff. = 2701.34
+[2026-10-06 05:41:27.731] [jointLog] [info] iteration = 100 | max rel diff. = 19.1283
+[2026-10-06 05:41:31.475] [jointLog] [info] iteration = 200 | max rel diff. = 7.53664
+[2026-10-06 05:41:35.268] [jointLog] [info] iteration = 300 | max rel diff. = 4.2031
+[2026-10-06 05:41:39.019] [jointLog] [info] iteration = 400 | max rel diff. = 1.2743
+[2026-10-06 05:41:42.764] [jointLog] [info] iteration = 500 | max rel diff. = 2.64956
+[2026-10-06 05:41:46.559] [jointLog] [info] iteration = 600 | max rel diff. = 1.4133
+[2026-10-06 05:41:50.324] [jointLog] [info] iteration = 700 | max rel diff. = 0.984667
+[2026-10-06 05:41:54.081] [jointLog] [info] iteration = 800 | max rel diff. = 0.941246
+[2026-10-06 05:41:57.891] [jointLog] [info] iteration = 900 | max rel diff. = 0.135815
+[2026-10-06 05:42:01.651] [jointLog] [info] iteration = 1,000 | max rel diff. = 0.130509
+[2026-10-06 05:42:05.458] [jointLog] [info] iteration = 1,100 | max rel diff. = 0.0498558
+[2026-10-06 05:42:09.218] [jointLog] [info] iteration = 1,200 | max rel diff. = 0.8435
+[2026-10-06 05:42:13.013] [jointLog] [info] iteration = 1,300 | max rel diff. = 0.382449
+[2026-10-06 05:42:16.819] [jointLog] [info] iteration = 1,400 | max rel diff. = 0.851141
+[2026-10-06 05:42:19.697] [jointLog] [info] iteration = 1,477 | max rel diff. = 0.0096336
+[2026-10-06 05:42:19.733] [jointLog] [info] Finished optimizer
+[2026-10-06 05:42:19.733] [jointLog] [info] writing output 
+
+[2026-10-06 05:42:20.093] [jointLog] [warning] NOTE: Read Lib [[ /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614664_1.fastq.gz, /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614664_2.fastq.gz]] :
+
+Found no concordant and consistent mappings. If this is a paired-end library, are you sure the reads are properly paired? check the file: /kaggle/working/Kaggle_test/GSE149312/salmon_out/SRR11614664/lib_format_counts.json for details
+

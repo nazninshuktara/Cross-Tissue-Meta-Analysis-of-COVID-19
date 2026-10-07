@@ -1,0 +1,11 @@
+{
+    "salmon_version": "1.10.0",
+    "index": "/kaggle/input/datasets/asifbiotechnology139/human-salmon-index-grch38",
+    "libType": "A",
+    "mates1": "/kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614682_1.fastq.gz",
+    "mates2": "/kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614682_2.fastq.gz",
+    "threads": "4",
+    "validateMappings": [],
+    "output": "/kaggle/working/Kaggle_test/GSE149312/salmon_out/SRR11614682",
+    "auxDir": "aux_info"
+}

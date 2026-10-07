@@ -1,0 +1,46 @@
+[2026-10-06 08:32:20.701] [jointLog] [info] setting maxHashResizeThreads to 4
+[2026-10-06 08:32:20.701] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+[2026-10-06 08:32:20.701] [jointLog] [info] Usage of --validateMappings implies use of minScoreFraction. Since not explicitly specified, it is being set to 0.65
+[2026-10-06 08:32:20.701] [jointLog] [info] Setting consensusSlack to selective-alignment default of 0.35.
+[2026-10-06 08:32:20.701] [jointLog] [info] parsing read library format
+[2026-10-06 08:32:20.701] [jointLog] [info] There is 1 library.
+[2026-10-06 08:32:20.738] [jointLog] [info] Loading pufferfish index
+[2026-10-06 08:32:20.748] [jointLog] [info] Loading dense pufferfish index.
+[2026-10-06 08:35:18.999] [jointLog] [info] done
+[2026-10-06 08:35:19.210] [jointLog] [info] Index contained 238,636 targets
+[2026-10-06 08:35:19.330] [jointLog] [info] Number of decoys : 194
+[2026-10-06 08:35:19.330] [jointLog] [info] First decoy index : 238,404 
+[2026-10-06 08:35:50.413] [jointLog] [info] Computed 38,642 rich equivalence classes for further processing
+[2026-10-06 08:35:50.413] [jointLog] [info] Counted 1,074,624 total reads in the equivalence classes 
+[2026-10-06 08:35:50.420] [jointLog] [info] Number of mappings discarded because of alignment score : 875,765
+[2026-10-06 08:35:50.420] [jointLog] [info] Number of fragments entirely discarded because of alignment score : 87,452
+[2026-10-06 08:35:50.420] [jointLog] [info] Number of fragments discarded because they are best-mapped to decoys : 41,649
+[2026-10-06 08:35:50.420] [jointLog] [info] Number of fragments discarded because they have only dovetail (discordant) mappings to valid targets : 0
+[2026-10-06 08:35:50.414] [fileLog] [info] 
+At end of round 0
+==================
+Observed 1710057 total fragments (1710057 in most recent round)
+
+[2026-10-06 08:35:50.462] [jointLog] [warning] Only 1074624 fragments were mapped, but the number of burn-in fragments was set to 5000000.
+The effective lengths have been computed using the observed mappings.
+
+[2026-10-06 08:35:50.462] [jointLog] [info] Mapping rate = 62.8414%
+
+[2026-10-06 08:35:50.462] [jointLog] [info] finished quantifyLibrary()
+[2026-10-06 08:35:50.466] [jointLog] [info] Starting optimizer
+[2026-10-06 08:35:50.707] [jointLog] [info] Marked 0 weighted equivalence classes as degenerate
+[2026-10-06 08:35:50.777] [jointLog] [info] iteration = 0 | max rel diff. = 439.958
+[2026-10-06 08:35:57.139] [jointLog] [info] iteration = 100 | max rel diff. = 11.7878
+[2026-10-06 08:36:01.426] [jointLog] [info] iteration = 200 | max rel diff. = 9.60714
+[2026-10-06 08:36:04.313] [jointLog] [info] iteration = 300 | max rel diff. = 10.7575
+[2026-10-06 08:36:07.245] [jointLog] [info] iteration = 400 | max rel diff. = 0.87925
+[2026-10-06 08:36:10.129] [jointLog] [info] iteration = 500 | max rel diff. = 0.591163
+[2026-10-06 08:36:13.035] [jointLog] [info] iteration = 600 | max rel diff. = 0.0326643
+[2026-10-06 08:36:14.991] [jointLog] [info] iteration = 668 | max rel diff. = 0.00648464
+[2026-10-06 08:36:15.048] [jointLog] [info] Finished optimizer
+[2026-10-06 08:36:15.048] [jointLog] [info] writing output 
+
+[2026-10-06 08:36:15.422] [jointLog] [warning] NOTE: Read Lib [[ /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614676_1.fastq.gz, /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614676_2.fastq.gz]] :
+
+Found no concordant and consistent mappings. If this is a paired-end library, are you sure the reads are properly paired? check the file: /kaggle/working/Kaggle_test/GSE149312/salmon_out/SRR11614676/lib_format_counts.json for details
+

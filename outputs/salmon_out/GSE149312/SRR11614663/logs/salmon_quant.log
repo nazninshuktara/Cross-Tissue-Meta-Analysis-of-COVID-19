@@ -1,0 +1,50 @@
+[2026-10-06 05:17:14.389] [jointLog] [info] setting maxHashResizeThreads to 4
+[2026-10-06 05:17:14.389] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+[2026-10-06 05:17:14.389] [jointLog] [info] Usage of --validateMappings implies use of minScoreFraction. Since not explicitly specified, it is being set to 0.65
+[2026-10-06 05:17:14.389] [jointLog] [info] Setting consensusSlack to selective-alignment default of 0.35.
+[2026-10-06 05:17:14.389] [jointLog] [info] parsing read library format
+[2026-10-06 05:17:14.389] [jointLog] [info] There is 1 library.
+[2026-10-06 05:17:14.402] [jointLog] [info] Loading pufferfish index
+[2026-10-06 05:17:14.409] [jointLog] [info] Loading dense pufferfish index.
+[2026-10-06 05:19:05.104] [jointLog] [info] done
+[2026-10-06 05:19:05.225] [jointLog] [info] Index contained 238,636 targets
+[2026-10-06 05:19:05.358] [jointLog] [info] Number of decoys : 194
+[2026-10-06 05:19:05.358] [jointLog] [info] First decoy index : 238,404 
+[2026-10-06 05:22:31.681] [jointLog] [info] Computed 128,937 rich equivalence classes for further processing
+[2026-10-06 05:22:31.681] [jointLog] [info] Counted 10,407,449 total reads in the equivalence classes 
+[2026-10-06 05:22:31.685] [jointLog] [info] Number of mappings discarded because of alignment score : 4,994,683
+[2026-10-06 05:22:31.685] [jointLog] [info] Number of fragments entirely discarded because of alignment score : 656,298
+[2026-10-06 05:22:31.685] [jointLog] [info] Number of fragments discarded because they are best-mapped to decoys : 398,262
+[2026-10-06 05:22:31.685] [jointLog] [info] Number of fragments discarded because they have only dovetail (discordant) mappings to valid targets : 0
+[2026-10-06 05:22:31.685] [jointLog] [info] Mapping rate = 75.6233%
+
+[2026-10-06 05:22:31.685] [jointLog] [info] finished quantifyLibrary()
+[2026-10-06 05:22:31.686] [jointLog] [info] Starting optimizer
+[2026-10-06 05:22:31.824] [jointLog] [info] Marked 0 weighted equivalence classes as degenerate
+[2026-10-06 05:22:31.869] [jointLog] [info] iteration = 0 | max rel diff. = 3454.16
+[2026-10-06 05:22:31.681] [fileLog] [info] 
+At end of round 0
+==================
+Observed 13762229 total fragments (13762229 in most recent round)
+
+[2026-10-06 05:22:36.011] [jointLog] [info] iteration = 100 | max rel diff. = 18.4802
+[2026-10-06 05:22:40.086] [jointLog] [info] iteration = 200 | max rel diff. = 14.3009
+[2026-10-06 05:22:44.129] [jointLog] [info] iteration = 300 | max rel diff. = 10.9039
+[2026-10-06 05:22:48.231] [jointLog] [info] iteration = 400 | max rel diff. = 12.9034
+[2026-10-06 05:22:52.306] [jointLog] [info] iteration = 500 | max rel diff. = 3.50238
+[2026-10-06 05:22:56.427] [jointLog] [info] iteration = 600 | max rel diff. = 0.335157
+[2026-10-06 05:23:00.645] [jointLog] [info] iteration = 700 | max rel diff. = 0.662891
+[2026-10-06 05:23:04.870] [jointLog] [info] iteration = 800 | max rel diff. = 1.7077
+[2026-10-06 05:23:09.013] [jointLog] [info] iteration = 900 | max rel diff. = 0.177791
+[2026-10-06 05:23:13.069] [jointLog] [info] iteration = 1,000 | max rel diff. = 0.0382694
+[2026-10-06 05:23:17.142] [jointLog] [info] iteration = 1,100 | max rel diff. = 0.0356617
+[2026-10-06 05:23:21.172] [jointLog] [info] iteration = 1,200 | max rel diff. = 0.522971
+[2026-10-06 05:23:25.250] [jointLog] [info] iteration = 1,300 | max rel diff. = 0.220505
+[2026-10-06 05:23:26.645] [jointLog] [info] iteration = 1,335 | max rel diff. = 0.00923509
+[2026-10-06 05:23:26.681] [jointLog] [info] Finished optimizer
+[2026-10-06 05:23:26.681] [jointLog] [info] writing output 
+
+[2026-10-06 05:23:27.049] [jointLog] [warning] NOTE: Read Lib [[ /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614663_1.fastq.gz, /kaggle/working/Kaggle_test/GSE149312/fastq/SRR11614663_2.fastq.gz]] :
+
+Found no concordant and consistent mappings. If this is a paired-end library, are you sure the reads are properly paired? check the file: /kaggle/working/Kaggle_test/GSE149312/salmon_out/SRR11614663/lib_format_counts.json for details
+
