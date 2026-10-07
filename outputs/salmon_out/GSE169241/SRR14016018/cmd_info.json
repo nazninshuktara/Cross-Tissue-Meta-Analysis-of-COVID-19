@@ -1,0 +1,11 @@
+{
+    "salmon_version": "1.10.0",
+    "index": "/kaggle/input/datasets/nazninshuktara/human-salmon-index-grch38-gencode-v49",
+    "libType": "A",
+    "mates1": "/kaggle/working/Kaggle_test/GSE169241/fastq/SRR14016018_1.fastq.gz",
+    "mates2": "/kaggle/working/Kaggle_test/GSE169241/fastq/SRR14016018_2.fastq.gz",
+    "threads": "4",
+    "validateMappings": [],
+    "output": "/kaggle/working/Kaggle_test/GSE169241/salmon_out/SRR14016018",
+    "auxDir": "aux_info"
+}
