@@ -23,12 +23,23 @@ Curated sample-level:
     Sample-level metadata with inclusion/exclusion status.
 
 Dataset-specific notes:
-    GSE273149: Day 1 (baseline) samples only.
-    GSE243217: sepsis samples were excluded from the primary analysis.
-    GSE202182: 4 hantavirus and 10 non-COVID acute tubular injury samples were excluded from the primary analysis.
+    GSE208342: COVID-19 and negative control samples included. 
+    GSE273149: Day 1 (baseline) samples only, to avoid longitudinal
+               pseudoreplication.
+    GSE243217: 22 sepsis samples are excluded from the primary analysis
+               and kept as "specificity_analysis" for COVID specificity
+               testing.
+    GSE202182: 4 hantavirus and 10 non-COVID acute tubular injury (ATI)
+               samples are excluded from the primary analysis.
+    GSE208076: COVID-19 and normal lung samples included.
+    GSE211979: COVID-19 (ICU and non-ICU) and healthy samples included.
+    GSE169241: human heart tissue only. 15 ES-derived cardiomyocyte and
+               macrophage samples are excluded.
+    GSE149312: 6 SARS-CoV comparator samples are excluded.
     GSE182917: lung samples only. Heart, kidney, liver and spleen samples
                are COVID-19 cases without matched controls, so they are
-               excluded from the primary analysis.
+               excluded from the primary analysis. The 3 controls are
+               non-COVID lung disease patients, not healthy lung.
 """
 
 import os
