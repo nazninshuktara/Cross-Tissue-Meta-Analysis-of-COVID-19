@@ -1,11 +1,11 @@
-dataset_id,run_count,sample_count,included_count,excluded_count,specificity_count,covid_count,control_count
-GSE208342,80,20,20,0,0,15,5
-GSE273149,49,49,13,36,0,9,4
-GSE243217,72,72,50,0,22,35,15
-GSE202182,74,37,23,14,0,13,10
-GSE208076,10,10,10,0,0,7,3
-GSE211979,21,21,21,0,0,16,5
-GSE169241,23,23,8,15,0,3,5
-GSE149312,22,22,16,6,0,10,6
-GSE182917,24,24,14,10,0,11,3
-TOTAL,375,278,175,81,22,119,56
+dataset_id,tissue_type,run_count,sample_count,included_count,excluded_count,specificity_count,covid_count,control_count
+GSE208342,Nasopharyngeal,80,20,20,0,0,15,5
+GSE273149,PBMC,49,49,13,36,0,9,4
+GSE243217,Peripheral blood,72,72,50,0,22,35,15
+GSE202182,Kidney,74,37,23,14,0,13,10
+GSE208076,Lung,10,10,10,0,0,7,3
+GSE211979,Blood,21,21,21,0,0,16,5
+GSE169241,Heart,23,23,8,15,0,3,5
+GSE149312,Gut organoids,22,22,16,6,0,10,6
+GSE182917,"Multi-tissue, mainly lung",24,24,14,10,0,11,3
+TOTAL,,375,278,175,81,22,119,56

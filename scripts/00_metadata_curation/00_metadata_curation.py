@@ -64,6 +64,19 @@ DATASETS = [
     "GSE149312",
     "GSE182917",
 ]
+
+DATASET_TISSUES = {
+    "GSE208342": "Nasopharyngeal",
+    "GSE273149": "PBMC",
+    "GSE243217": "Peripheral blood",
+    "GSE202182": "Kidney",
+    "GSE208076": "Lung",
+    "GSE211979": "Blood",
+    "GSE169241": "Heart",
+    "GSE149312": "Gut organoids",
+    "GSE182917": "Multi-tissue, mainly lung",
+}
+
 # Shared metadata columns
 BASE_COLUMNS = [
     "dataset_id",
@@ -1240,6 +1253,7 @@ def main():
         discovery_dataset_summary.append(
             {
                 "dataset_id": gse,
+                "tissue_type": DATASET_TISSUES[gse],
                 "run_count": run_count,
                 "sample_count": sample_count,
                 "included_count": (
