@@ -23,16 +23,24 @@ if [[ ! -s "${GTF_FILE}" ]]; then
     wget -c "${GTF_URL}" -O "${GTF_FILE}"
 fi
 
-# Create transcript-to-gene mapping
+# Create version-free transcript-to-gene mapping
 zcat "${GTF_FILE}" | \
 awk '$3 == "transcript" {
     match($0, /gene_id "([^"]+)"/, gene)
     match($0, /transcript_id "([^"]+)"/, tx)
+
     if (gene[1] != "" && tx[1] != "") {
-        sub(/\.[0-9]+$/, "", gene[1])
-        print tx[1] "," gene[1]
+
+        tx_id = tx[1]
+        gene_id = gene[1]
+
+        sub(/\.[0-9]+$/, "", tx_id)
+        sub(/\.[0-9]+$/, "", gene_id)
+
+        print tx_id "," gene_id
     }
 }' | \
+sort -u | \
 { echo "transcript_id,gene_id"; cat; } > "${TX2GENE_FILE}"
 
 # Report mapping count

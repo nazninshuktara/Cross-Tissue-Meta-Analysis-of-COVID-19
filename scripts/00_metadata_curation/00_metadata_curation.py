@@ -10,6 +10,7 @@ Output:
     data/metadata/metadata_run_level.csv
     data/metadata/metadata_sample_level.csv
     data/metadata/metadata_curated_sample.csv
+    data/metadata/discovery_dataset_summary.csv
 
 Run-level:
     One row per SRA run.
@@ -20,6 +21,14 @@ Sample-level:
 
 Curated sample-level:
     Sample-level metadata with inclusion/exclusion status.
+
+Dataset-specific notes:
+    GSE273149: Day 1 (baseline) samples only.
+    GSE243217: sepsis samples were excluded from the primary analysis.
+    GSE202182: 4 hantavirus and 10 non-COVID acute tubular injury samples were excluded from the primary analysis.
+    GSE182917: lung samples only. Heart, kidney, liver and spleen samples
+               are COVID-19 cases without matched controls, so they are
+               excluded from the primary analysis.
 """
 
 import os
@@ -151,6 +160,7 @@ def normalize_tissue(gse, row):
         (
             "tissue",
             "tissue/cell_type",
+            "source_name",
         ),
     )
 
@@ -167,6 +177,9 @@ def normalize_tissue(gse, row):
 
     if "peripheral blood" in tissue_lower:
         return "Peripheral blood"
+
+    if tissue_lower == "blood":
+        return "Blood"
 
     if "kidney" in tissue_lower:
         return "Kidney"
@@ -266,8 +279,12 @@ def assign_disease_group(dataset_id, disease_status):
             return "Control"
 
     elif dataset_id == "GSE211979":
-        if disease == "severe convalescent covid-19":
+        if disease in {
+            "covid19 icu",
+            "covid19 nonicu",
+        }:
             return "COVID-19"
+        
         if disease == "healthy":
             return "Control"
 
@@ -331,15 +348,20 @@ def normalize_severity(gse, row):
 
     # GSE211979
     if gse == "GSE211979":
-        disease = get_value(row, "disease")
+        disease = get_value(row, "disease_state")
         
-        if disease != NA:
-           disease_lower = disease.lower()
-           
-           if "severe" in disease_lower:
-            return "Severe"
-           
-           return NA
+        if disease == NA:
+            return NA
+
+        disease_lower = disease.lower()
+
+        if disease_lower == "covid19 icu":
+            return "ICU"
+
+        if disease_lower == "covid19 nonicu":
+            return "Non-ICU"
+
+        return NA
 
 
     # Other datasets with explicit severity columns
@@ -672,7 +694,7 @@ def apply_analysis_criteria(sample_metadata):
 
         elif gse == "GSE273149":
             is_day_1 = bool(
-                re.search(
+                re.fullmatch(
                     r"(day\s*0?1|d\s*0?1|baseline)",
                     timepoint,
                 )
@@ -846,21 +868,30 @@ def apply_analysis_criteria(sample_metadata):
                 ] = "Not COVID-19"
 
         elif gse == "GSE182917":
-            if disease in {
+            # Lung only: heart, kidney, liver and spleen samples are
+            # COVID-19 cases with no matched controls, so organ and
+            # disease are confounded and DE cannot be estimated.
+            is_cov_ctrl = disease in {
                 "covid-19",
                 "control",
-            }:
+            }
+ 
+            if tissue == "lung" and is_cov_ctrl:
                 curated.at[index, "inclusion_status"] = "included"
             else:
                 curated.at[index, "inclusion_status"] = "excluded"
-
+ 
+                if is_cov_ctrl and tissue != "lung":
+                    reason = "Non-lung organ without matched control"
+                else:
+                    reason = "Not COVID-19 or control lung"
+ 
                 curated.at[
                     index,
                     "exclusion_reason",
-                ] = "Not COVID-19 or control lung"
-
+                ] = reason
+ 
     return curated[CURATED_COLUMNS]
-
 
 def validate_metadata(
     run_metadata,
