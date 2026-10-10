@@ -22,10 +22,10 @@ cut -d ' ' -f 1 > ../../../inputs/reference/decoys.txt
 sed -i -e 's/>//g' ../../../inputs/reference/decoys.txt
 
 # Step 3. Combine transcriptome and genome FASTAs
-cat ../../../inputs/reference/gencode.v49.pc_transcripts.fa.gz 
-../../../inputs/reference/GRCh38.primary_assembly.genome.fa.gz > 
-../../../inputs/reference/transcripts_and_decoys.fa.gz
-
+cat ../../../inputs/reference/gencode.v49.pc_transcripts.fa.gz \
+    ../../../inputs/reference/GRCh38.primary_assembly.genome.fa.gz \
+    > ../../../inputs/reference/transcripts_and_decoys.fa.gz
+    
 # Step 4. Build the Salmon index
 salmon index \
   -t ../../../inputs/reference/transcripts_and_decoys.fa.gz \
