@@ -26,7 +26,7 @@ TX2GENE_FILE <- file.path(
   PROJECT_ROOT, 
   "inputs", 
   "reference",
-  "tx2gene_gencode_v49_pc.csv"
+  "tx2gene_gencode_v49.csv"
 )
 
 # Directory containing Salmon quantification results
@@ -39,7 +39,7 @@ QUANT_DIR <- file.path(
 # Directory for storing gene-level count and length tables
 OUTPUT_DIR <- file.path(
   PROJECT_ROOT, 
-  "data", 
+  "outputs", 
   "gene_counts"
 )
 
@@ -60,11 +60,17 @@ if (!file.exists(TX2GENE_FILE)) {
 }
 
 # Read metadata and select primary-analysis samples
-metadata <- read_csv(METADATA_FILE, show_col_types = FALSE)
+metadata <- read_csv(
+  METADATA_FILE, 
+  show_col_types = FALSE
+)
 
 # Check required metadata columns
 required_columns <- c(
-  "dataset_id", "sample_id", "run_id", "inclusion_status"
+  "dataset_id", 
+  "sample_id", 
+  "run_id", 
+  "inclusion_status"
 )
 
 missing_columns <- setdiff(required_columns, names(metadata))
@@ -330,3 +336,83 @@ for (dataset in unique(metadata$dataset_id)) {
 
 message("\nAll datasets processed successfully.")
 
+# Combine dataset-wise gene count matrices
+message("\nCombining gene count matrices...")
+
+count_files <- file.path(
+  OUTPUT_DIR,
+  paste0(
+    "gene_counts_",
+    unique(metadata$dataset_id),
+    ".csv"
+  )
+)
+
+missing_files <- count_files[!file.exists(count_files)]
+
+if (length(missing_files) > 0) {
+  stop(
+    "Cannot combine counts. Missing files: ",
+    paste(basename(missing_files), collapse = ", ")
+  )
+}
+
+count_tables <- lapply(
+  count_files,
+  read_csv,
+  show_col_types = FALSE
+)
+
+# Validate gene IDs and their order
+reference_genes <- count_tables[[1]]$gene_id
+
+for (i in seq_along(count_tables)) {
+  
+  if (!identical(count_tables[[i]]$gene_id, reference_genes)) {
+    stop(
+      "Gene IDs or their order differ in: ",
+      basename(count_files[i])
+    )
+  }
+}
+
+# Validate unique sample IDs across datasets
+all_sample_ids <- unlist(
+  lapply(
+    count_tables,
+    function(x) setdiff(names(x), "gene_id")
+  )
+)
+
+if (anyDuplicated(all_sample_ids)) {
+  stop("Duplicate sample IDs found across gene count matrices.")
+}
+
+# Combine all dataset matrices
+combined_counts <- count_tables[[1]]
+
+if (length(count_tables) > 1) {
+  
+  for (i in 2:length(count_tables)) {
+    
+    combined_counts <- bind_cols(
+      combined_counts,
+      count_tables[[i]] %>% select(-gene_id)
+    )
+    
+  }
+}
+
+# Save the combined matrix
+combined_file <- file.path(
+  OUTPUT_DIR,
+  "gene_counts_all_datasets.csv"
+)
+
+write_csv(combined_counts, combined_file)
+
+message("Combined matrix saved: ", combined_file)
+message("Total genes: ", nrow(combined_counts))
+message("Total biological samples: ", ncol(combined_counts) - 1)
+
+message("\nGene-level count processing completed.")
