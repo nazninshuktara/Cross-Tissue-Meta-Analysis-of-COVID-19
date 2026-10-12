@@ -1,4 +1,4 @@
-# Cross-Tissue-Meta-Analysis-of-COVID-19
+<img width="97" height="30" alt="image" src="https://github.com/user-attachments/assets/ffbba66a-58e4-4510-adc8-1681a962c0da" /># Cross-Tissue-Meta-Analysis-of-COVID-19
 A two-tier **tissue-independent immune transcriptional signature of COVID-19** identified through cross-tissue random-effects meta-analysis of bulk RNA-seq datasets.
 
 ---
@@ -26,7 +26,7 @@ This study therefore combines dataset-level differential-expression analysis wit
 
 ## Datasets
 ### Discovery Datasets
-Nine GEO datasets spanning eight tissue types were included in the discovery meta-analysis, comprising 307 biological samples (155 COVID-19 and 66 controls).
+Nine GEO datasets spanning six tissue types were included in the discovery meta-analysis, comprising 278 biological samples.
 
 | **GEO accession** | **Tissue type** | **Sample size** |
 |---|---|---|
@@ -35,10 +35,10 @@ Nine GEO datasets spanning eight tissue types were included in the discovery met
 | GSE243217 | Peripheral blood | 72 |
 | GSE202182 | Kidney | 37 |
 | GSE208076 | Lung | 10 |
-| GSE211979 | PBMC | 50 |
+| GSE211979 | Blood | 21 |
 | GSE169241 | Heart | 23 |
 | GSE149312 | Gut organoids | 22 |
-| GSE182917 | Liver, Kidney, Lung, Heart, Spleen | 24 |
+| GSE182917 | Multi-tissue, mainly lung | 24 |
 
 > **Data processing:** Raw sequencing data were obtained from the Sequence Read Archive (SRA). Technical replicates were identified from study metadata and collapsed at the appropriate level before differential-expression analysis. Dataset-specific differential expression was performed independently before cross-tissue meta-analysis.
 
@@ -101,13 +101,14 @@ The analysis is organized as a numbered and reproducible computational pipeline.
 
 ```text
                  ┌─────────────────────────┐
-                 │   Public GEO / SRA Data │
+                 │   NCBI GEO / SRA Data   │
                  └────────────┬────────────┘
                               │
                               ▼
                  ┌─────────────────────────┐
-                 │ Data Retrieval & QC     │
-                 │ GEO / SRA / metadata    │
+                 │    Metadata Curation    │
+                 │            &            │
+                 │     Sample Selection    │
                  └────────────┬────────────┘
                               │
                               ▼
