@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# 00_primary_sample_distribution.R
+# 00_primary_analysis_sample_distribution.R
 # Summarize and visualize primary-analysis sample distribution.
 
 # Load required packages
@@ -32,7 +32,7 @@ METADATA_FILE <- file.path(
 OUTPUT_DIR <- file.path(
   PROJECT_ROOT,
   "outputs",
-  "primary_analysis_sample_distribution"
+  "sample_distribution"
 )
 
 # Directory for storing plots and tables
@@ -301,7 +301,7 @@ gtsave(
   sample_distribution,
   filename = file.path(
     TABLE_DIR,
-    "primary_sample_distribution.html"
+    "sample_distribution.html"
   )
 )
 
@@ -382,7 +382,7 @@ sample_distribution_plot <- ggplot(
 
 # Save the figure as a high-resolution PNG
 ggsave(
-  filename = file.path(PLOT_DIR, "primary_sample_distribution.png"),
+  filename = file.path(PLOT_DIR, "sample_distribution.png"),
   plot = sample_distribution_plot,
   width = 12,
   height = 6.5,
