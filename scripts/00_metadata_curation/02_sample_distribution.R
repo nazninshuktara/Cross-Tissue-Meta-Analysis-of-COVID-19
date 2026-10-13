@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# 00_primary_analysis_sample_distribution.R
+# 02_primary_analysis_sample_distribution.R
 # Summarize and visualize primary-analysis sample distribution.
 
 # Load required packages
@@ -12,8 +12,8 @@ suppressPackageStartupMessages({
   library(scales)        # Format plot axes and tick marks
   library(gtsummary)     # Format publication-ready tables
   library(gt)            # Create Word documents
-  library(flextable)
-  library(officer)
+  library(flextable)     # Format tables for Word documents
+  library(officer)       # Create and edit Word documents
 })
 
 # Define project root
