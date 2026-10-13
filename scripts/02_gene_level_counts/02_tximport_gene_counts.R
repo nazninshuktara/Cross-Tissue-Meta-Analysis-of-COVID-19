@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# 06_tximport_gene_counts.R
+# 02_tximport_gene_counts.R
 # Import Salmon quantification and aggregate technical runs by biological sample.
 
 # Load required packages
