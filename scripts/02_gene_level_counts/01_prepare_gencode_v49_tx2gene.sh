@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# 05_prepare_gencode_v49_tx2gene.sh
+# 01_prepare_gencode_v49_tx2gene.sh
 # Create a transcript-to-gene mapping from GENCODE v49 protein-coding transcripts.
 
 set -euo pipefail
