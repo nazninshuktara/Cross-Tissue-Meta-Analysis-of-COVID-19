@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# 09_differential_expression.R
+# 01_differential_expression.R
 # Perform per-dataset differential expression analysis using DESeq2.
 
 # Load required packages
