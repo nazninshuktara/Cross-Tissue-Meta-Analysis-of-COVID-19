@@ -1,0 +1,16 @@
+metric,value
+datasets_expected,9
+datasets_analyzed,9
+unique_genes_with_valid_estimates,19621
+genes_eligible_for_meta_analysis,18624
+successful_models,18624
+failed_models,0
+genes_with_valid_p_values,18624
+meta_significant_genes,1308
+non_significant_genes,17316
+minimum_datasets_per_gene,2
+median_datasets_per_gene,9
+maximum_datasets_per_gene,9
+FDR_threshold,0.05
+meta_analysis_method,"Random-effects model (REML, z-test)"
+multiple_testing_method,Benjamini-Hochberg FDR
