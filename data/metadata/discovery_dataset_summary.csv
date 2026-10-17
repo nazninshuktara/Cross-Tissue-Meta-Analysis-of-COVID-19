@@ -7,5 +7,5 @@ GSE208076,Lung,10,10,10,0,0,7,3
 GSE211979,Blood,21,21,21,0,0,16,5
 GSE169241,Heart,23,23,8,15,0,3,5
 GSE149312,Gut organoids,22,22,16,6,0,10,6
-GSE182917,"Multi-tissue, mainly lung",24,24,14,10,0,11,3
+GSE182917,Lung (selected from multi-tissue dataset),24,24,14,10,0,11,3
 TOTAL,,375,278,175,81,22,119,56
