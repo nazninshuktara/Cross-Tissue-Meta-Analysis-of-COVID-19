@@ -74,7 +74,7 @@ DATASET_TISSUES = {
     "GSE211979": "Blood",
     "GSE169241": "Heart",
     "GSE149312": "Gut organoids",
-    "GSE182917": "Multi-tissue, mainly lung",
+    "GSE182917": "Lung (selected from multi-tissue dataset)"
 }
 
 # Shared metadata columns
