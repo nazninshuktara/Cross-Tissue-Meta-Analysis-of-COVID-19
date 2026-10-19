@@ -1,7 +1,8 @@
 #!/usr/bin/env Rscript
 
 # 02_tximport_gene_counts.R
-# Import Salmon quantification and aggregate technical runs by biological sample.
+# Import Salmon quantification, summarize transcript-level estimates at the gene level,
+# and aggregate technical runs for each biological sample.
 
 # Load required packages
 suppressPackageStartupMessages({
@@ -149,12 +150,6 @@ if (anyNA(tx2gene$transcript_id) || anyNA(tx2gene$gene_id)) {
   stop("Mapping contains missing transcript or gene IDs.")
 }
 
-if (anyDuplicated(tx2gene$transcript_id)) {
-  stop("Mapping contains duplicate transcript IDs.")
-}
-
-tx2gene <- as.data.frame(tx2gene)
-
 # Remove transcript version suffixes to match Salmon quantification IDs
 tx2gene$transcript_id <- sub(
   "\\.[0-9]+$",
@@ -162,11 +157,11 @@ tx2gene$transcript_id <- sub(
   tx2gene$transcript_id
 )
 
-# Validate transcript IDs after removing version suffixes
-
 if (anyDuplicated(tx2gene$transcript_id)) {
-stop("Duplicate transcript IDs found after removing version suffixes.")
+  stop("Duplicate transcript IDs found after removing version suffixes.")
 }
+
+tx2gene <- as.data.frame(tx2gene)
 
 # Report expected primary-analysis input size
 message("Included biological samples: ", nrow(metadata))
@@ -206,213 +201,117 @@ for (dataset in unique(metadata$dataset_id)) {
 
   message("  Runs imported: ", length(quant_files))
   message("  Biological samples: ", nrow(dataset_metadata))
-
-  # Import Salmon transcript-level estimates and summarize by gene
+  
+  # Import Salmon quantifications and summarize transcripts to genes
   txi <- tximport(
     quant_files,
     type = "salmon",
     tx2gene = tx2gene,
-    countsFromAbundance = "no",
-    ignoreTxVersion = TRUE
+    ignoreTxVersion = TRUE,
+    countsFromAbundance = "no"
   )
-
-  # Confirm that imported run columns match the run map
-  if (!all(run_ids %in% colnames(txi$counts))) {
-    stop(dataset, ": imported count columns do not match run IDs.")
+  
+  # Group technical runs by biological sample within this dataset.
+  dataset_run_map <- dataset_map |>
+    dplyr::select(sample_id, run_id)
+  
+  sample_run_groups <- split(
+    dataset_run_map$run_id,
+    dataset_run_map$sample_id
+  )
+  
+  # Confirm that every run maps to an imported quantification column.
+  if (!all(dataset_run_map$run_id %in% colnames(txi$counts))) {
+    stop(dataset, ": run IDs do not match quantification columns.")
   }
   
-  sample_ids <- dataset_metadata$sample_id
-  
-  sample_counts <- matrix(
-    0,
-    nrow = nrow(txi$counts),
-    ncol = length(sample_ids),
-    dimnames = list(rownames(txi$counts), sample_ids)
-  )
-  
-  sample_lengths <- sample_counts
-  
-  # Aggregate technical runs within each biological sample
-  for (sample in sample_ids) {
-    sample_runs <- dataset_map$run_id[
-      dataset_map$sample_id == sample
-    ]
-    
-    run_counts <- txi$counts[, sample_runs, drop = FALSE]
-    run_lengths <- txi$length[, sample_runs, drop = FALSE]
-
-    # Sum estimated counts across runs
-    aggregated_counts <- rowSums(run_counts)
-
-    # Count-weighted effective length across runs
-    valid_lengths <- is.finite(run_lengths) & run_lengths > 0
-    
-    weighted_counts <- run_counts
-    weighted_counts[!valid_lengths] <- 0
-
-    length_values <- run_lengths
-    length_values[!valid_lengths] <- 0
-
-    numerator <- rowSums(weighted_counts * length_values)
-    denominator <- rowSums(weighted_counts)
-
-    aggregated_lengths <- rep(NA_real_, length(aggregated_counts))
-    names(aggregated_lengths) <- rownames(txi$counts)
-
-    has_counts <- denominator > 0
-    aggregated_lengths[has_counts] <-
-      numerator[has_counts] / denominator[has_counts]
-
-    # For zero-count genes, use the mean valid run length
-    no_counts <- !has_counts
-
-    if (any(no_counts)) {
-      fallback_lengths <- run_lengths[no_counts, , drop = FALSE]
-      fallback_lengths[!is.finite(fallback_lengths) |
-                         fallback_lengths <= 0] <- NA_real_
-      
-      fallback_means <- rowMeans(fallback_lengths, na.rm = TRUE)
-      fallback_means[!is.finite(fallback_means)] <- NA_real_
-
-      aggregated_lengths[no_counts] <- fallback_means
-    }
-    
-
-    if (any(!is.finite(aggregated_lengths)) ||
-        any(aggregated_lengths <= 0)) {
-      stop(
-        dataset, ": invalid effective lengths after aggregation for sample ",
-        sample
+  # Sum gene-level counts across technical runs
+  gene_counts <- vapply(
+    sample_run_groups,
+    function(sample_runs) {
+      rowSums(
+        txi$counts[, sample_runs, drop = FALSE]
       )
-    }
-
-    sample_counts[, sample] <- aggregated_counts
-    sample_lengths[, sample] <- aggregated_lengths
-  }
-
-  # Convert gene-level estimated counts to integers for downstream DESeq2
-  gene_counts <- round(sample_counts)
+    },
+    FUN.VALUE = numeric(nrow(txi$counts))
+  )
+  rownames(gene_counts) <- rownames(txi$counts)
+  
+  # Round estimated counts for DESeq2
+  gene_counts <- round(gene_counts)
   storage.mode(gene_counts) <- "integer"
   
-  # Define output files
-  count_file <- file.path(
-    OUTPUT_DIR, paste0("gene_counts_", dataset, ".csv")
+  # Save dataset-level gene count matrix
+  readr::write_csv(
+    data.frame(
+      gene_id = rownames(gene_counts),
+      gene_counts,
+      check.names = FALSE
+    ),
+    file.path(OUTPUT_DIR, paste0("gene_counts_", dataset, ".csv"))
   )
   
-  length_file <- file.path(
-    OUTPUT_DIR, paste0("gene_lengths_", dataset, ".csv")
-  )
-  
-  # Avoid silently overwriting existing results
-  if (file.exists(count_file) || file.exists(length_file)) {
-    stop(
-      "Output already exists for ", dataset,
-      ". Move or back up existing files before rerunning: ",
-      count_file, " ; ", length_file
-    )
-  }
-  
-  # Write gene-level counts and effective lengths
-  counts_df <- data.frame(
-    gene_id = rownames(gene_counts),
-    gene_counts,
-    check.names = FALSE
-  )
-  
-  lengths_df <- data.frame(
-    gene_id = rownames(sample_lengths),
-    sample_lengths,
-    check.names = FALSE
-  )
-  
-  write_csv(counts_df, count_file)
-  write_csv(lengths_df, length_file)
-  
-  message("  Gene-level counts saved: ", count_file)
-  message("  Effective lengths saved: ", length_file)
-  message("  Genes: ", nrow(gene_counts))
-  message("  Samples: ", ncol(gene_counts))
+  message("  Gene-level count matrix: ",
+          nrow(gene_counts), " genes x ",
+          ncol(gene_counts), " biological samples")
 }
-
 message("\nAll datasets processed successfully.")
 
-# Combine dataset-wise gene count matrices
-message("\nCombining gene count matrices...")
-
+# Combine all datasets
+# Identify dataset-specific count files
 count_files <- file.path(
   OUTPUT_DIR,
-  paste0(
-    "gene_counts_",
-    unique(metadata$dataset_id),
-    ".csv"
-  )
+  paste0("gene_counts_", unique(metadata$dataset_id), ".csv")
 )
 
-missing_files <- count_files[!file.exists(count_files)]
-
-if (length(missing_files) > 0) {
-  stop(
-    "Cannot combine counts. Missing files: ",
-    paste(basename(missing_files), collapse = ", ")
-  )
-}
-
+# Read all dataset-specific count matrices
 count_tables <- lapply(
-  count_files,
-  read_csv,
+  count_files, 
+  readr::read_csv, 
   show_col_types = FALSE
 )
 
-# Validate gene IDs and their order
-reference_genes <- count_tables[[1]]$gene_id
-
-for (i in seq_along(count_tables)) {
-  
-  if (!identical(count_tables[[i]]$gene_id, reference_genes)) {
-    stop(
-      "Gene IDs or their order differ in: ",
-      basename(count_files[i])
-    )
+# Add dataset prefixes to sample column names
+count_tables <- lapply(
+  seq_along(count_tables),
+  function(i) {
+    counts <- count_tables[[i]]
+    dataset <- unique(metadata$dataset_id)[i]
+    
+    sample_cols <- setdiff(names(counts), "gene_id")
+    names(counts)[match(sample_cols, names(counts))] <-
+      paste(dataset, sample_cols, sep = "_")
+    
+    counts
   }
-}
-
-# Validate unique sample IDs across datasets
-all_sample_ids <- unlist(
-  lapply(
-    count_tables,
-    function(x) setdiff(names(x), "gene_id")
-  )
 )
 
-if (anyDuplicated(all_sample_ids)) {
-  stop("Duplicate sample IDs found across gene count matrices.")
-}
-
-# Combine all dataset matrices
-combined_counts <- count_tables[[1]]
-
-if (length(count_tables) > 1) {
-  
-  for (i in 2:length(count_tables)) {
-    
-    combined_counts <- bind_cols(
-      combined_counts,
-      count_tables[[i]] %>% select(-gene_id)
-    )
-    
-  }
-}
-
-# Save the combined matrix
-combined_file <- file.path(
-  OUTPUT_DIR,
-  "gene_counts_all_datasets.csv"
+# Combine datasets by gene ID
+combined_counts <- Reduce(
+  function(x, y) dplyr::full_join(x, y, by = "gene_id"),
+  count_tables
 )
 
-write_csv(combined_counts, combined_file)
+# Replace missing values with zero for genes absent from a dataset
+sample_cols <- setdiff(names(combined_counts), "gene_id")
+combined_counts[sample_cols] <- lapply(
+  combined_counts[sample_cols],
+  function(x) {
+    x[is.na(x)] <- 0
+    x
+  }
+)
 
-message("Combined matrix saved: ", combined_file)
-message("Total genes: ", nrow(combined_counts))
-message("Total biological samples: ", ncol(combined_counts) - 1)
+# Save the combined gene-level count matrix
+readr::write_csv(
+  combined_counts,
+  file.path(OUTPUT_DIR, "gene_counts_all_datasets.csv")
+)
 
+message(
+  "Combined gene count matrix: ",
+  nrow(combined_counts), " genes x ",
+  length(sample_cols), " biological samples"
+)
 message("\nGene-level count processing completed.")
+
