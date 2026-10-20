@@ -116,9 +116,8 @@ if (!all(DATASETS %in% unique(metadata$dataset_id))) {
 }
 
 
-# Read and validate count and gene-length files
+# Read and validate gene count files
 count_matrices <- list()
-gene_length_matrices <- list()
 input_summary <- list()
 
 for (dataset in DATASETS) {
@@ -128,17 +127,8 @@ for (dataset in DATASETS) {
     paste0("gene_counts_", dataset, ".csv")
   )
   
-  length_file <- file.path(
-    COUNT_DIR,
-    paste0("gene_lengths_", dataset, ".csv")
-  )
-  
   if (!file.exists(count_file)) {
     stop("Missing gene-count file: ", count_file)
-  }
-  
-  if (!file.exists(length_file)) {
-    stop("Missing gene-length file: ", length_file)
   }
   
   # Read gene counts
@@ -177,50 +167,12 @@ for (dataset in DATASETS) {
     stop(dataset, ": invalid gene counts detected.")
   }
   
-  # Read gene lengths
-  gene_lengths <- readr::read_csv(
-    length_file,
-    show_col_types = FALSE
-  )
-  
-  if (ncol(gene_lengths) < 2) {
-    stop(dataset, ": gene-length file has no length column.")
-  }
-  
-  # Standardize the first column name
-  names(gene_lengths)[1] <- "gene_id"
-  
-  if (anyNA(gene_lengths$gene_id) ||
-      anyDuplicated(gene_lengths$gene_id) ||
-      !setequal(counts$gene_id, gene_lengths$gene_id)) {
-    stop(dataset, ": gene IDs differ between count and length files.")
-  }
-  
-  # Validate gene-length values
-  length_values <- as.matrix(
-    gene_lengths[, -1, drop = FALSE]
-  )
-  
-  suppressWarnings(
-    storage.mode(length_values) <- "numeric"
-  )
-  
-  if (anyNA(length_values) ||
-      any(!is.finite(length_values)) ||
-      any(length_values <= 0)) {
-    stop(dataset, ": invalid gene-length values detected.")
-  }
-  
   # Store validated inputs
   count_matrices[[dataset]] <- counts
-  gene_length_matrices[[dataset]] <- gene_lengths
   
   input_summary[[dataset]] <- tibble::tibble(
     dataset_id = dataset,
-    genes = nrow(counts),
-    count_matrix_samples = ncol(counts) - 1,
-    gene_length_genes = nrow(gene_lengths),
-    gene_length_columns = ncol(gene_lengths) - 1
+    genes = nrow(counts)
   )
   
   cat(dataset, ": input validation passed\n")
@@ -449,6 +401,7 @@ dds <- DESeq2::DESeqDataSetFromMatrix(
   colData = coldata,
   design = ~ dataset_id
 )
+dds <- estimateSizeFactors(dds)
 
 # Apply variance-stabilizing transformation
 vsd <- DESeq2::vst(

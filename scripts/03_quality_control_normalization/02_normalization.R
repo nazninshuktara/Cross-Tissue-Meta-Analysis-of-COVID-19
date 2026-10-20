@@ -63,92 +63,33 @@ QC_EXCLUDED_SAMPLES <- c(
   "GSM6896317"
 )
 
-# Validate input files
-if (!file.exists(METADATA_FILE)) {
-  stop("Curated metadata file not found: ", METADATA_FILE)
-}
-
-if (!dir.exists(COUNT_DIR)) {
-  stop("Gene-count directory not found: ", COUNT_DIR)
-}
-
 # Read curated sample-level metadata
 metadata <- readr::read_csv(
   METADATA_FILE,
   show_col_types = FALSE
 )
 
-# Validate required metadata columns
-required_columns <- c(
-  "dataset_id",
-  "sample_id",
-  "tissue_type",
-  "disease_status",
-  "disease_group",
-  "disease_severity",
-  "inclusion_status"
-)
-
-missing_columns <- setdiff(
-  required_columns,
-  colnames(metadata)
-)
-
-if (length(missing_columns) > 0) {
-  stop(
-    "Missing metadata columns: ",
-    paste(missing_columns, collapse = ", ")
-  )
-}
-
-# Validate sample identifiers
-if (anyNA(metadata$sample_id) ||
-    any(metadata$sample_id == "")) {
-  stop("Missing or empty sample IDs found in metadata.")
-}
-
-if (anyDuplicated(metadata$sample_id)) {
-  stop("Duplicate sample IDs found in curated metadata.")
-}
-
-
-# Keep included primary analysis samples after QC exclusions
+# Keep included primary analysis samples
 metadata <- metadata %>%
-  dplyr::filter(
+  filter(
     inclusion_status == "included",
     dataset_id %in% DATASETS,
     !sample_id %in% QC_EXCLUDED_SAMPLES
-  ) %>%
-  dplyr::select(all_of(required_columns))
-
-cat(
-  "\nSamples excluded after QC:",
-  paste(QC_EXCLUDED_SAMPLES, collapse = ", "),
-  "\n"
-)
-
-# Validate primary analysis metadata
-if (nrow(metadata) == 0) {
-  stop("No primary analysis samples found in curated metadata.")
-} 
-
-missing_datasets <- setdiff(
-  DATASETS,
-  unique(metadata$dataset_id)
-)
-
-if (length(missing_datasets) > 0) {
-  stop(
-    "No included samples found for datasets: ",
-    paste(missing_datasets, collapse = ", ")
   )
+
+if (anyDuplicated(metadata$sample_id)) {
+  stop("Duplicate sample IDs found in metadata.")
+}
+
+if (nrow(metadata) == 0) {
+  stop("No included samples found.")
 }
 
 # Report sample counts before normalization
 cat("\nPrimary analysis samples by dataset:\n")
 
 sample_summary <- metadata %>%
-  count(dataset_id, name = "n_samples")
+  dplyr::count(dataset_id, name = "n_samples")
 
 print(sample_summary)
 
@@ -165,9 +106,10 @@ normalization_summary_list <- list()
 # Start normalization
 cat("\nPerforming DESeq2 size-factor normalization...\n")
 
+# Dataset-wise normalization
 for (dataset in DATASETS) {
   
-  cat("\n--- ", dataset, " ---\n", sep = "")
+  cat("\nProcessing:", dataset, "\n")
   
   # Define gene-count input file
   count_file <- file.path(
@@ -184,67 +126,13 @@ for (dataset in DATASETS) {
     count_file,
     show_col_types = FALSE
   )
-  
-  if (ncol(counts_df) < 2) {
-    stop("Gene-count matrix has no sample columns: ", count_file)
-  }
-  
-  # Rename first column to gene_id
   names(counts_df)[1] <- "gene_id"
-  
-  # Validate gene identifiers
-  if (anyNA(counts_df$gene_id) ||
-      any(counts_df$gene_id == "")) {
-    stop("Missing or empty gene IDs in: ", count_file)
-  }
-  
-  if (anyDuplicated(counts_df$gene_id)) {
-    stop("Duplicate gene IDs found in: ", count_file)
-  }
-  
-  # Validate sample columns
-  matrix_samples <- colnames(counts_df)[-1]
-  
-  if (anyDuplicated(matrix_samples)) {
-    stop("Duplicate sample columns found in: ", count_file)
-  }
   
   # Get included samples for this dataset
   dataset_metadata <- metadata %>%
     filter(dataset_id == dataset)
   
   metadata_samples <- dataset_metadata$sample_id
-  
-  if (length(metadata_samples) == 0) {
-    stop("No included samples found for ", dataset)
-  }
-  
-  # Compare metadata and gene-count sample IDs
-  missing_from_counts <- setdiff(
-    metadata_samples,
-    matrix_samples
-  )
-  
-  extra_in_counts <- setdiff(
-    matrix_samples,
-    metadata_samples
-  )
-  
-  if (length(missing_from_counts) > 0) {
-    stop(
-      dataset,
-      ": included samples missing from gene counts: ",
-      paste(missing_from_counts, collapse = ", ")
-    )
-  }
-  
-  if (length(extra_in_counts) > 0) {
-    cat(
-      "Count-matrix samples excluded from primary analysis:",
-      length(extra_in_counts),
-      "\n"
-    )
-  }
   
   # Retain only included primary analysis samples
   counts_df <- counts_df %>%
@@ -255,31 +143,22 @@ for (dataset in DATASETS) {
   
   # Convert counts to a numeric matrix
   count_matrix <- as.matrix(
-    counts_df[, -1, drop = FALSE]
+    counts_df[, -1]
   )
   
   rownames(count_matrix) <- counts_df$gene_id
   
-  storage.mode(count_matrix) <- "numeric"
-  
-  # Validate estimated counts
-  if (any(!is.finite(count_matrix))) {
-    stop("Non-finite count values found in ", dataset)
-  }
-  
-  if (any(count_matrix < 0)) {
-    stop("Negative count values found in ", dataset)
-  }
-  
   # Round estimated counts for DESeq2
   count_matrix <- round(count_matrix)
-  
   storage.mode(count_matrix) <- "integer"
   
   # Filter low-count genes
-  n_samples <- ncol(count_matrix)
-  
-  min_samples <- ceiling(0.10 * n_samples)
+  min_samples <- max(
+    1L,
+    ceiling(
+      0.10 * ncol(count_matrix)
+    )
+  )
   
   keep_genes <- rowSums(
     count_matrix >= 10
@@ -298,14 +177,12 @@ for (dataset in DATASETS) {
   cat("Samples:", ncol(count_matrix), "\n")
   cat("Genes after filtering:", nrow(count_matrix), "\n")
   
-  # Create DESeq2 dataset
-  col_data <- data.frame(
-    row.names = colnames(count_matrix)
-  )
-  
+  # DESeq2 size factor estimation
   dds <- DESeqDataSetFromMatrix(
     countData = count_matrix,
-    colData = col_data,
+    colData = data.frame(
+      row.names = colnames(count_matrix)
+    ),
     design = ~ 1
   )
   
@@ -364,8 +241,7 @@ for (dataset in DATASETS) {
   normalization_summary_list[[dataset]] <- tibble(
     dataset_id = dataset,
     n_samples = ncol(count_matrix),
-    n_genes_before_filtering = nrow(counts_df),
-    n_genes_after_filtering = nrow(count_matrix),
+    n_genes = nrow(count_matrix),
     min_size_factor = min(size_factors),
     median_size_factor = median(size_factors),
     max_size_factor = max(size_factors)
@@ -374,28 +250,6 @@ for (dataset in DATASETS) {
 
 # Combine size-factor tables
 size_factors_all <- bind_rows(size_factor_list)
-
-# Validate size-factor output
-if (nrow(size_factors_all) != nrow(metadata)) {
-  stop(
-    "Size-factor sample count mismatch: ",
-    nrow(size_factors_all),
-    " estimated vs ",
-    nrow(metadata),
-    " expected."
-  )
-}
-
-if (anyDuplicated(size_factors_all$sample_id)) {
-  stop("Duplicate sample IDs found in size-factor output.")
-}
-
-if (!setequal(
-  size_factors_all$sample_id,
-  metadata$sample_id
-)) {
-  stop("Size-factor sample IDs do not match included metadata.")
-}
 
 # Save size factors
 write_csv(
@@ -408,16 +262,6 @@ normalization_summary <- bind_rows(
   normalization_summary_list
 )
 
-# Validate normalized count files
-normalized_files <- file.path(
-  OUTPUT_DIR,
-  paste0("normalized_counts_", DATASETS, ".csv")
-)
-
-if (!all(file.exists(normalized_files))) {
-  stop("One or more normalized count files are missing.")
-}
-
 # Save normalization summary
 write_csv(
   normalization_summary,
@@ -428,6 +272,5 @@ write_csv(
 cat("\nNormalization completed successfully.\n\n")
 
 cat("Datasets:", length(DATASETS), "\n")
-cat("Primary samples normalized:", nrow(size_factors_all), "\n")
-cat("Normalized count files:", length(normalized_files), "\n")
+cat("Samples normalized:", nrow(size_factors_all), "\n")
 cat("Output directory:", OUTPUT_DIR, "\n\n")
