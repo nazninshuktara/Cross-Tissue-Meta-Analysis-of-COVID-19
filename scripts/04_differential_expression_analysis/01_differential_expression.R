@@ -174,10 +174,8 @@ for (dataset in DATASETS) {
   counts_df <- read_csv(
     count_file,
     show_col_types = FALSE
-  ) %>%
-    rename(
-      gene_id = 1
-    )
+  )
+  names(counts_df)[1] <- "gene_id"
 
   # Check duplicate genes
   if (anyDuplicated(counts_df$gene_id)) {
@@ -463,10 +461,8 @@ count_file <- file.path(
 counts_df <- read_csv(
   count_file,
   show_col_types = FALSE
-) %>%
-  rename(
-    gene_id = 1
-  )
+)
+names(counts_df)[1] <- "gene_id"
 
 # Check sample availability in the count matrix
 sample_ids <- sensitivity_metadata$sample_id
