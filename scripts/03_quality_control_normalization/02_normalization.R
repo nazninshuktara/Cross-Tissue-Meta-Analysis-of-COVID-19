@@ -272,5 +272,6 @@ write_csv(
 cat("\nNormalization completed successfully.\n\n")
 
 cat("Datasets:", length(DATASETS), "\n")
+cat("\nSamples excluded after QC:",paste(QC_EXCLUDED_SAMPLES, collapse = ", "),"\n")
 cat("Samples normalized:", nrow(size_factors_all), "\n")
 cat("Output directory:", OUTPUT_DIR, "\n\n")
