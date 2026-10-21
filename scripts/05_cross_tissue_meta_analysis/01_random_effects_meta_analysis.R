@@ -226,7 +226,7 @@ if (nrow(all_estimates) == 0) {
 
 # Count the number of datasets contributing valid estimates per gene
 gene_counts <- all_estimates %>%
-  count(gene_id, name = "n_datasets")
+  dplyr::count(gene_id, name = "n_datasets")
 
 # Retain genes with estimates from at least MIN_DATASETS datasets
 eligible_genes <- gene_counts %>%
@@ -331,7 +331,7 @@ meta_results_table <- bind_rows(meta_results)
 
 # Summarize initial model-fitting outcomes
 model_status_summary <- meta_results_table %>%
-  count(model_status, name = "n_genes")
+  dplyr::count(model_status, name = "n_genes")
 
 print(model_status_summary)
 
@@ -440,7 +440,8 @@ retry_results <- lapply(failed_gene_ids, function(gene) {
 retry_results <- bind_rows(retry_results)
 
 # Review the retry outcomes
-print(retry_results %>% count(model_status, retry_method), n = Inf)
+print(retry_results %>% 
+        dplyr::count(model_status, retry_method), n = Inf)
 
 
 # Confirm that all failed genes were successfully refitted
@@ -463,7 +464,8 @@ meta_results_table <- meta_results_table %>%
   bind_rows(retry_results %>% select(-retry_method))
 
 # Verify the final model status
-print(meta_results_table %>% count(model_status))
+print(meta_results_table %>% 
+        dplyr::count(model_status))
 
 # Confirm that the expected number of genes is retained
 stopifnot(
@@ -539,7 +541,8 @@ concordance_results <- all_estimates %>%
   summarise(
     n_datasets = n(),
     n_concordant = sum(
-      sign(log2FoldChange) == sign(first(pooled_log2FC))
+      sign(log2FoldChange) ==
+        sign(pooled_log2FC[1])
     ),
     direction_concordance = n_concordant / n_datasets,
     .groups = "drop"
@@ -621,6 +624,7 @@ volcano_plot <- ggplot(
     legend.position = "top",
     plot.title = element_text(face = "bold")
 )
+
 # Save the volcano plot
 ggsave(
   file.path(PLOT_DIR, "meta_analysis_volcano.png"),
@@ -670,7 +674,6 @@ if (nrow(concordance_plot_data) > 0) {
     dpi = 300
   )
 }
-
 
 # Create a table for top 20 meta significant genes
 # Map gene IDs to gene symbols
@@ -946,11 +949,5 @@ message("Significant genes: ", file.path(TABLE_DIR, "meta_significant_genes.csv"
 message("Retry results: ", file.path(TABLE_DIR, "meta_analysis_retry_results.csv"))
 message("Input QC: ", file.path(TABLE_DIR, "meta_analysis_input_qc.csv"))
 message("Plots directory: ", PLOT_DIR)
-message(
-  "Meta-significant genes (BH-FDR < ", FDR_THRESHOLD, "): ",
-  sum(meta_results_table$meta_significant %in% TRUE)
-)
-message(
-  "Non-significant genes (BH-FDR >= ", FDR_THRESHOLD, "): ",
-  sum(meta_results_table$meta_significant %in% FALSE)
-)
+message("Meta-significant genes (BH-FDR < ", FDR_THRESHOLD, "): ",sum(meta_results_table$meta_significant %in% TRUE))
+message("Non-significant genes (BH-FDR >= ", FDR_THRESHOLD, "): ",sum(meta_results_table$meta_significant %in% FALSE))
