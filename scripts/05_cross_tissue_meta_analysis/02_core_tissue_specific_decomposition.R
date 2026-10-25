@@ -6,6 +6,7 @@
 
 # Load required packages
 suppressPackageStartupMessages({
+  
   # Data import, wrangling, and table manipulation
   library(readr)
   library(dplyr)
@@ -16,13 +17,15 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(stringr)
   library(patchwork)
+  library(pheatmap)
   
   # Specialized plotting utilities
   library(ggridges)
   library(gridExtra)
   
-  # Functional enrichment analysis
+  # Functional enrichment analyses
   library(clusterProfiler)
+  library(enrichplot)
   
   # Human gene annotation databases
   library(org.Hs.eg.db)
@@ -196,7 +199,6 @@ if (!all(required_concordance_columns %in% names(concordance_results))) {
     )
   )
 }
-
 message("Input column validation passed.")
 
 # Combine DESeq2 results from all nine datasets
@@ -365,15 +367,226 @@ readr::write_csv(
 # Summarize gene counts by component
 classification_summary <- gene_classification %>%
   dplyr::count(component, name = "n_genes")
-
 print(classification_summary)
+
+# Cross-tissue heatmap of representative decomposition components
+# Load Ensembl-to-gene symbol mapping
+gene_symbol_map <- readr::read_csv(
+  "inputs/reference/gencode.v49_gene_id_symbol_map.csv",
+  show_col_types = FALSE
+) %>%
+  mutate(
+    gene_id_clean = sub("\\.[0-9]+$", "", gene_id)
+  ) %>%
+  dplyr::select(
+    gene_id_clean,
+    gene_symbol
+  ) %>%
+  distinct(
+    gene_id_clean,
+    .keep_all = TRUE
+  )
+
+# Select representative genes from each decomposition component
+top_core <- gene_classification %>%
+  filter(component == "core") %>%
+  arrange(padj)
+
+top_shared <- gene_classification %>%
+  filter(component == "shared") %>%
+  arrange(padj) %>%
+  slice_head(n = 20)
+
+top_tissue <- gene_classification %>%
+  filter(component == "tissue_specific_candidate") %>%
+  arrange(padj) %>%
+  slice_head(n = 20)
+
+top_genes <- bind_rows(
+  top_core,
+  top_shared,
+  top_tissue
+)
+
+# Heatmap values
+heatmap_data <- de_all %>%
+  filter(
+    gene_id %in% top_genes$gene_id
+  ) %>%
+  dplyr::select(
+    gene_id,
+    dataset,
+    log2FoldChange
+  ) %>%
+  left_join(
+    top_genes %>%
+      dplyr::select(gene_id, component),
+    by = "gene_id"
+  )
+
+# Attach gene symbols for plotting
+heatmap_data <- heatmap_data %>%
+  mutate(
+    gene_id_clean =
+      sub("\\.[0-9]+$", "", gene_id)
+  ) %>%
+  left_join(
+    gene_symbol_map,
+    by = "gene_id_clean"
+  )
+
+heatmap_data <- heatmap_data %>%
+  mutate(
+    gene_label = ifelse(
+      is.na(gene_symbol),
+      gene_id,
+      gene_symbol
+    )
+  )
+
+# Order genes according to decomposition component
+gene_order <- top_genes$gene_id
+
+heatmap_data$gene_id <- factor(
+  heatmap_data$gene_id,
+  levels = rev(gene_order)
+)
+
+# Create component annotation panel
+annotation_bar <- heatmap_data %>%
+  distinct(
+    gene_id,
+    gene_label,
+    component
+  ) %>%
+  mutate(
+    dataset = "Component"
+  )
+
+# Main heatmap
+p1 <- ggplot(
+  heatmap_data,
+  aes(
+    x = dataset,
+    y = gene_id,
+    fill = log2FoldChange
+  )
+) +
+  geom_tile() +
+  scale_fill_gradient2(
+    low = "#2166AC",
+    mid = "white",
+    high = "#B2182B",
+    midpoint = 0,
+    limits = c(-4, 4),
+    oob = scales::squish,
+    name = expression(log[2] * FC)
+  ) +
+  labs(
+    title = "Cross-tissue expression patterns of representative meta-significant genes",
+    subtitle =
+      paste(
+        "Core (n = 25), Shared (n = 20), and Tissue-specific",
+        "Candidate (n = 20) genes across nine COVID-19 discovery cohorts"
+      ),
+    x = "Discovery datasets",
+    y = NULL
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    ),
+    plot.title = element_text(
+      face = "bold",
+      size = 14,
+      hjust = 0.5
+    ),
+    plot.subtitle = element_text(
+      size = 11,
+      hjust = 0.5
+    ),
+    legend.title = element_text(
+      face = "bold",
+      size = 11
+    ),
+    legend.text = element_text(
+      size = 10
+    )
+  )
+
+# Component annotation panel
+p2 <- ggplot(
+  annotation_bar,
+  aes(
+    x = dataset,
+    y = gene_id,
+    fill = component
+  )
+) +
+  geom_tile() +
+  scale_fill_manual(
+    values = c(
+      core = "#D73027",
+      shared = "#FDAE61",
+      tissue_specific_candidate = "#4575B4"
+    ),
+    name = "Component"
+  ) +
+  scale_y_discrete(
+    labels = annotation_bar$gene_label
+  ) +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "right",
+    axis.text.y = element_text(
+      size = 8,
+      face = "italic"
+    )
+  )
+
+# Assemble annotation and expression heatmap panels
+final_heatmap <- p2 + p1 +
+  patchwork::plot_layout(
+    widths = c(1.2, 8),
+    guides = "collect"
+  ) &
+  theme(
+    legend.position = "right"
+  )
+
+# Export high-resolution publication figure
+ggsave(
+  filename = file.path(
+    PLOT_DIR,
+    "Core_Shared_TissueSpecific_Heatmap.png"
+  ),
+  plot = final_heatmap,
+  width = 12,
+  height = 12,
+  dpi = 600,
+  bg = "white"
+)
+
+message("Saved: Core_Shared_TissueSpecific_Heatmap.png")
 
 # GO Biological Process enrichment analysis
 # Prepare Ensembl gene IDs by removing version suffixes
 gene_classification <- gene_classification %>%
   mutate(
-    ensembl_id = sub("\\.[0-9]+$", "", gene_id)
-  )
+    ensembl_id = sub("\\.[0-9]+$", "", gene_id))
+
 # Map Ensembl IDs to Entrez IDs.
 id_map <- AnnotationDbi::mapIds(
   org.Hs.eg.db,
@@ -386,8 +599,7 @@ id_map <- AnnotationDbi::mapIds(
 # Attach Entrez IDs to the existing classification table.
 gene_classification <- gene_classification %>%
   mutate(
-    ENTREZID = unname(id_map[ensembl_id])
-  )
+    ENTREZID = unname(id_map[ensembl_id]))
 
 # Check mapping success.
 cat("Total genes:", nrow(gene_classification), "\n")
@@ -533,9 +745,13 @@ plot_go_component <- function(data, component_name) {
   plot_data <- data |>
     dplyr::filter(component == component_name) |>
     dplyr::mutate(
+      Description = stringr::str_wrap(
+        as.character(Description),
+        width = 35
+      ),
       Description = factor(
         Description,
-        levels = rev(Description[order(GeneRatio)])
+        levels = rev(unique(Description[order(GeneRatio)]))
       )
     )
   
@@ -560,7 +776,7 @@ plot_go_component <- function(data, component_name) {
       trans = "reverse"
     ) +
     ggplot2::scale_y_discrete(
-      labels = function(x) stringr::str_wrap(x, width = 45)
+      labels = function(x) x
     ) +
     ggplot2::labs(
       title = paste("GO Biological Process:", component_name),
@@ -589,7 +805,7 @@ if (!is.null(p_core)) {
     plot = p_core,
     width = 10,
     height = 7,
-    dpi = 300,
+    dpi = 600,
     bg = "white"
   )
 }
@@ -601,7 +817,7 @@ if (!is.null(p_shared)) {
     plot = p_shared,
     width = 11,
     height = 9,
-    dpi = 300,
+    dpi = 600,
     bg = "white"
   )
 }
@@ -620,11 +836,11 @@ ggplot2::ggsave(
   plot = combined_go_plot,
   width = 13,
   height = 16,
-  dpi = 300,
+  dpi = 600,
   bg = "white"
 )
 
-# Run KEGG pathway enrichment
+# Perform KEGG pathway enrichment analysis
 run_kegg_enrichment <- function(gene_ids, universe_ids) {
   
   # Remove missing IDs and duplicates
@@ -785,15 +1001,16 @@ plot_kegg_component <- function(data, component_name) {
       trans = "reverse"
     ) +
     scale_y_discrete(
-      labels = function(x)
-        stringr::str_wrap(x, width = 40)
+      labels = function(x) x
     ) +
     labs(
       title = paste(
         "KEGG pathway enrichment:",
-        component_name
+        tools::toTitleCase(
+          gsub("_", " ", component_name)
+        )
       ),
-      subtitle = "Top pathways ranked by adjusted p-value",
+      subtitle = "Top enriched KEGG pathways ranked by BH-adjusted p-value",
       x = "Gene count",
       y = NULL,
       color = "Adjusted p-value",
@@ -829,7 +1046,7 @@ p_kegg_tissue <-
 # Save Plot
 if (!is.null(p_kegg_core)) {
   ggsave(
-    file.path(PLOT_DIR, "KEGG_Core.png"),
+    file.path(PLOT_DIR, "KEGG_Enrichment_Core_Genes.png"),
     p_kegg_core,
     width = 10,
     height = 7,
@@ -840,7 +1057,7 @@ if (!is.null(p_kegg_core)) {
 
 if (!is.null(p_kegg_shared)) {
   ggsave(
-    file.path(PLOT_DIR, "KEGG_Shared.png"),
+    file.path(PLOT_DIR, "KEGG_Enrichment_Shared_Genes.png"),
     p_kegg_shared,
     width = 10,
     height = 7,
@@ -851,8 +1068,7 @@ if (!is.null(p_kegg_shared)) {
 
 if (!is.null(p_kegg_tissue)) {
   ggsave(
-    file.path(PLOT_DIR,
-              "KEGG_Tissue_Specific.png"),
+    file.path(PLOT_DIR, "KEGG_Enrichment_TissueSpecific_Genes.png"),
     p_kegg_tissue,
     width = 10,
     height = 7,
@@ -861,7 +1077,7 @@ if (!is.null(p_kegg_tissue)) {
   )
 }
 
-# GSEA Analysis
+# KEGG Gene Set Enrichment Analysis (GSEA)
 # Map Ensembl gene IDs to Entrez IDs
 gsea_genes <- meta_results |>
   dplyr::filter(
@@ -881,7 +1097,7 @@ gene_mapping <- AnnotationDbi::select(
   columns = "ENTREZID"
 )
 
-# Keep mapped genes and rank by signed Z-score
+# Prepare a ranked Entrez gene list based on meta-analysis Z-scores
 gsea_ranked <- gsea_genes |>
   dplyr::inner_join(
     gene_mapping,
@@ -919,7 +1135,6 @@ gsea_kegg <- gseKEGG(
 
 # Inspect significant pathways
 gsea_results <- as.data.frame(gsea_kegg)
-
 cat("Significant KEGG GSEA pathways:", nrow(gsea_results), "\n")
 
 head(
@@ -950,7 +1165,7 @@ gsea_plot <- clusterProfiler::dotplot(
   color = "p.adjust"
 ) +
   ggplot2::labs(
-    title = "KEGG GSEA of COVID-19 Meta-analysis",
+    title = "KEGG GSEA of ranked COVID-19 meta-analysis signatures",
     x = "Normalized Enrichment Score (NES)",
     y = NULL
   ) +
@@ -959,7 +1174,7 @@ gsea_plot <- clusterProfiler::dotplot(
 ggsave(
   file.path(
     PLOT_DIR,
-    "GSEA_KEGG_Dotplot.png"
+    "KEGG_GSEA_Dotplot.png"
   ),
   plot = gsea_plot,
   width = 10,
@@ -975,14 +1190,14 @@ gsea_ridge <- enrichplot::ridgeplot(
   showCategory = 20
 ) +
   ggplot2::labs(
-    title = "KEGG GSEA enrichment landscape"
+    title = "Distribution of enriched KEGG pathways across ranked genes"
   ) +
   ggplot2::theme_bw()
 
 ggsave(
   filename = file.path(
     PLOT_DIR,
-    "GSEA_KEGG_Ridgeplot.png"
+    "KEGG_GSEA_Ridgeplot.png"
   ),
   plot = gsea_ridge,
   width = 12,
@@ -991,41 +1206,49 @@ ggsave(
   bg = "white"
 )
 
-# Top pathway enrichment curves
-# Neutrophil extracellular trap formation
-p_net <- enrichplot::gseaplot2(
+# Top enriched pathways
+top_pathways <- gsea_results %>%
+  arrange(p.adjust)
+
+top1 <- top_pathways$ID[1]
+top2 <- top_pathways$ID[2]
+
+top1_name <- top_pathways$Description[1]
+top2_name <- top_pathways$Description[2]
+
+# Generate enrichment curves for the two most significant pathways
+p_top1 <- enrichplot::gseaplot2(
   gsea_kegg,
-  geneSetID = "hsa04613",
-  title = "Neutrophil extracellular trap formation",
-  pvalue_table = TRUE
+  geneSetID = top1,
+  title = top1_name
 )
 
+p_top2 <- enrichplot::gseaplot2(
+  gsea_kegg,
+  geneSetID = top2,
+  title = top2_name
+)
+
+# Save pathway 1
 ggsave(
   filename = file.path(
     PLOT_DIR,
-    "GSEA_NET_Formation.png"
+    "KEGG_GSEA_Top_Pathway_1.png"
   ),
-  plot = p_net,
+  plot = p_top1,
   width = 10,
   height = 7,
   dpi = 300,
   bg = "white"
 )
 
-# NOD-like receptor signaling pathway
-p_nod <- enrichplot::gseaplot2(
-  gsea_kegg,
-  geneSetID = "hsa04621",
-  title = "NOD-like receptor signaling pathway",
-  pvalue_table = TRUE
-)
-
+# Save pathway 2
 ggsave(
   filename = file.path(
     PLOT_DIR,
-    "GSEA_NOD_Like_Receptor.png"
+    "KEGG_GSEA_Top_Pathway_2.png"
   ),
-  plot = p_nod,
+  plot = p_top2,
   width = 10,
   height = 7,
   dpi = 300,
@@ -1034,15 +1257,16 @@ ggsave(
 
 # Combined figure
 combined_gsea_plot <- patchwork::wrap_plots(
-  p_net,
-  p_nod,
+  p_top1,
+  p_top2,
   ncol = 1
 )
 
+# Save combined figure
 ggsave(
   filename = file.path(
     PLOT_DIR,
-    "GSEA_Top_Pathways.png"
+    "KEGG_GSEA_Top_Pathways.png"
   ),
   plot = combined_gsea_plot,
   width = 12,
