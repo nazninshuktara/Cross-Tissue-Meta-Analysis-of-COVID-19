@@ -348,7 +348,7 @@ message(
 # Inspect initial model-fitting failures
 failed_models <- meta_results_table %>%
   filter(grepl("^failed:", model_status)) %>%
-  select(gene_id, n_datasets, datasets, model_status)
+  dplyr::select(gene_id, n_datasets, datasets, model_status)
 
 print(failed_models, n = Inf)
 
@@ -461,7 +461,8 @@ if (any(retry_results$model_status != "success_after_retry") ||
 # Remove the original failed rows and insert the successful retry results
 meta_results_table <- meta_results_table %>%
   filter(!gene_id %in% failed_gene_ids) %>%
-  bind_rows(retry_results %>% select(-retry_method))
+  bind_rows(retry_results %>% 
+              dplyr::select(-retry_method))
 
 # Verify the final model status
 print(meta_results_table %>% 
@@ -528,7 +529,7 @@ concordance_results <- all_estimates %>%
   ) %>%
   inner_join(
     meta_results_table %>%
-      select(gene_id, 
+      dplyr::select(gene_id, 
              pooled_log2FC, 
              significant = meta_significant),
     by = "gene_id"
@@ -682,7 +683,7 @@ gene_symbol_map <- readr::read_csv(
   show_col_types = FALSE
 ) %>%
   mutate(gene_id_clean = sub("\\.[0-9]+$", "", gene_id)) %>%
-  select(gene_id_clean, gene_symbol) %>%
+  dplyr::select(gene_id_clean, gene_symbol) %>%
   distinct(gene_id_clean, .keep_all = TRUE)
 
 # Select the top 20 meta-significant genes by BH-adjusted p-value.
@@ -734,7 +735,7 @@ dataset_significance <- bind_rows(lapply(seq_along(result_files), function(i) {
 table_2_top20 <- top20_genes %>%
   left_join(
     concordance_results %>%
-      select(gene_id, direction_concordance) %>%
+      dplyr::select(gene_id, direction_concordance) %>%
       distinct(gene_id, .keep_all = TRUE),
     by = "gene_id"
   ) %>%
