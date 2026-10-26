@@ -320,6 +320,23 @@ readr::write_csv(
 
 message("Concordant but non-significant genes: ", nrow(concordant_not_sig))
 
+# Load Ensembl-to-gene symbol mapping
+gene_symbol_map <- readr::read_csv(
+  "inputs/reference/gencode.v49_gene_id_symbol_map.csv",
+  show_col_types = FALSE
+) %>%
+  mutate(
+    gene_id_clean = sub("\\.[0-9]+$", "", gene_id)
+  ) %>%
+  dplyr::select(
+    gene_id_clean,
+    gene_symbol
+  ) %>%
+  distinct(
+    gene_id_clean,
+    .keep_all = TRUE
+  )
+
 # Classify meta-significant genes into core, shared and tissue specific components
 gene_classification <- gene_evidence_merged %>%
   mutate(
@@ -339,6 +356,18 @@ gene_classification <- gene_evidence_merged %>%
       ~ "tissue_specific_candidate"
     )
   )
+
+# Add gene symbols
+gene_classification <- gene_classification %>%
+  mutate(
+    gene_id_clean = sub("\\.[0-9]+$", "", gene_id)
+  ) %>%
+  left_join(
+    gene_symbol_map,
+    by = "gene_id_clean"
+  ) %>%
+  relocate(gene_symbol, .after = gene_id) %>%
+  dplyr::select(-gene_id_clean)
 
 # Summarize component counts
 classification_summary <- gene_classification %>%
@@ -370,23 +399,6 @@ classification_summary <- gene_classification %>%
 print(classification_summary)
 
 # Cross-tissue heatmap of representative decomposition components
-# Load Ensembl-to-gene symbol mapping
-gene_symbol_map <- readr::read_csv(
-  "inputs/reference/gencode.v49_gene_id_symbol_map.csv",
-  show_col_types = FALSE
-) %>%
-  mutate(
-    gene_id_clean = sub("\\.[0-9]+$", "", gene_id)
-  ) %>%
-  dplyr::select(
-    gene_id_clean,
-    gene_symbol
-  ) %>%
-  distinct(
-    gene_id_clean,
-    .keep_all = TRUE
-  )
-
 # Select representative genes from each decomposition component
 top_core <- gene_classification %>%
   filter(component == "core") %>%
