@@ -1,0 +1,2 @@
+n_core_genes,n_tissue_groups,n_gene_tissue_tests,n_core_genes_robust_across_all_six,fdr_threshold,meta_analysis_method,p_value_test,multiple_testing_correction
+25,6,150,22,0.05,REML,z,Benjamini-Hochberg

@@ -1,0 +1,7 @@
+excluded_tissue,excluded_datasets,n_core_genes,n_significant,n_direction_preserved,n_significant_direction_preserved,n_model_failed,percent_significant,percent_significant_direction_preserved
+Blood,GSE211979;GSE273149;GSE243217,25,22,25,22,0,88,88
+Gut_organoids,GSE149312,25,25,25,25,0,100,100
+Heart,GSE169241,25,25,25,25,0,100,100
+Kidney,GSE202182,25,25,25,25,0,100,100
+Lung,GSE182917;GSE208076,25,25,25,25,0,100,100
+Nasopharyngeal,GSE208342,25,25,25,25,0,100,100
