@@ -23,23 +23,26 @@ Curated sample-level:
     Sample-level metadata with inclusion/exclusion status.
 
 Dataset-specific notes:
-    GSE208342: COVID-19 and negative control samples included. 
-    GSE273149: Day 1 (baseline) samples only, to avoid longitudinal
-               pseudoreplication.
-    GSE243217: 22 sepsis samples are excluded from the primary analysis
-               and kept as "specificity_analysis" for COVID specificity
-               testing.
+    GSE208342: COVID-19 and SARS-CoV-2-negative controls included.
+    GSE273149: First sampling timepoint (Day 1) only, to avoid repeated
+               measures from the same patients. Survivors and
+               non-survivors pooled as cases. Controls are non-COVID
+               ARDS patients (disease controls).
+    GSE243217: 22 sepsis samples excluded from the primary analysis and
+               kept as "specificity_analysis".
     GSE202182: 4 hantavirus and 10 non-COVID acute tubular injury (ATI)
-               samples are excluded from the primary analysis.
-    GSE208076: COVID-19 and normal lung samples included.
+               samples excluded from the primary analysis.
+    GSE208076: COVID-19 and normal lung (FFPE) samples included.
     GSE211979: COVID-19 (ICU and non-ICU) and healthy samples included.
-    GSE169241: human heart tissue only. 15 ES-derived cardiomyocyte and
-               macrophage samples are excluded.
-    GSE149312: 6 SARS-CoV comparator samples are excluded.
-    GSE182917: lung samples only. Heart, kidney, liver and spleen samples
-               are COVID-19 cases without matched controls, so they are
-               excluded from the primary analysis. The 3 controls are
-               non-COVID lung disease patients, not healthy lung.
+    GSE169241: Human heart tissue only. 15 ES-derived cardiomyocyte and
+               macrophage samples excluded (single-cell-type models, not
+               heart tissue).
+    GSE149312: Intestinal organoids retained as the gut tissue model.
+               6 SARS-CoV comparator samples excluded.
+    GSE182917: Lung samples only. Heart, kidney, liver and spleen samples
+               are COVID-19 cases without matched controls and are
+               excluded. The 3 controls are non-COVID lung disease
+               patients, not healthy lung.
 """
 
 import os
@@ -68,37 +71,51 @@ DATASETS = [
 DATASET_TISSUES = {
     "GSE208342": "Nasopharyngeal",
     "GSE273149": "PBMC",
-    "GSE243217": "Peripheral blood",
+    "GSE243217": "PBMC",
     "GSE202182": "Kidney",
     "GSE208076": "Lung",
     "GSE211979": "Blood",
     "GSE169241": "Heart",
-    "GSE149312": "Gut organoids",
-    "GSE182917": "Lung (selected from multi-tissue dataset)"
+    "GSE149312": "Intestinal organoids",
+    "GSE182917": "Lung"
 }
+# Six tissue types used in the Results ("spanning six tissue types")
+TISSUE_GROUPS = {
+    "GSE208342": "Nasopharyngeal",
+    "GSE273149": "Blood",
+    "GSE243217": "Blood",
+    "GSE202182": "Kidney",
+    "GSE208076": "Lung",
+    "GSE211979": "Blood",
+    "GSE169241": "Heart",
+    "GSE149312": "Gut",
+    "GSE182917": "Lung",
+}
+assert len(set(TISSUE_GROUPS.values())) == 6
+assert set(TISSUE_GROUPS) == set(DATASETS)
 
-# Shared metadata columns
 BASE_COLUMNS = [
     "dataset_id",
     "run_id",
     "sample_id",
+    "subject_id",          # GSE273149 'subject'; NA elsewhere
     "tissue_type",
+    "model_system",        # patient / organoid / ES-derived
     "disease_status",
     "disease_group",
+    "control_type",        # healthy / uninfected / disease (controls only)
     "disease_severity",
     "treatment",
     "outcome",
     "timepoint",
     "age",
     "sex",
-    "comorbidities",
-    "vaccination_status",
-    "infection_variant",
-    "sequencing_platform",
-    "library_type",
+    "sequencing_platform", # use the 'Instrument' column
+    "library_layout",      # PAIRED / SINGLE
     "data_source",
     "metadata_confidence",
 ]
+
 # Additional columns for curated metadata
 CURATED_COLUMNS = BASE_COLUMNS + [
     "inclusion_status",
@@ -200,7 +217,7 @@ def normalize_tissue(gse, row):
         return "PBMC"
 
     if "peripheral blood" in tissue_lower:
-        return "Peripheral blood"
+        return "PBMC"
 
     if tissue_lower == "blood":
         return "Blood"
@@ -216,7 +233,7 @@ def normalize_tissue(gse, row):
         or "intestinal" in tissue_lower
         or "organoid" in tissue_lower
     ):
-        return "Gut organoids"
+        return "Intestinal organoids"
 
     if gse == "GSE169241":
         if tissue_lower == "human heart":
@@ -348,9 +365,15 @@ def normalize_severity(gse, row):
 
     # GSE208342
     if gse == "GSE208342":
-        return get_value(row, "level_of_severity")
-
-
+        severity = get_value(row, "level_of_severity").lower()
+        if "severe" in severity:
+            return "Severe"
+        if "mild" in severity:
+            return "Mild"
+        if "asymptomatic" in severity:
+            return "Asymptomatic"
+        return NA  # negative controls
+        
     # GSE182917
     if gse == "GSE182917":
         disease_state = get_value(row, "disease_state")
@@ -397,27 +420,6 @@ def normalize_severity(gse, row):
             "severity_status",
         ),
     )
-
-
-    if severity != NA:
-        severity_lower = severity.lower()
-
-        if "critical" in severity_lower:
-            return "Critical"
-
-        if "severe" in severity_lower:
-            return "Severe"
-
-        if "moderate" in severity_lower:
-            return "Moderate"
-
-        if "mild" in severity_lower:
-            return "Mild"
-
-        if "asymptomatic" in severity_lower:
-            return "Asymptomatic"
-
-
     return severity
 
 
@@ -509,123 +511,91 @@ def get_sex(row):
     return normalize_sex(sex)
 
 
-def get_comorbidities(row):
-    """Extract comorbidity information."""
-    return get_first_value(
-        row,
-        (
-            "comorbidities",
-            "comorbidity",
-            "comorbidities_ch1",
-            "co-morbidities",
-            "medical_history",
-        ),
-    )
-
-
-def get_vaccination_status(row):
-    """Extract vaccination information."""
-    return get_first_value(
-        row,
-        (
-            "vaccination_status",
-            "vaccination",
-            "vaccination_status_ch1",
-            "vaccinated",
-            "vaccine",
-        ),
-    )
-
-
-def get_infection_variant(row):
-    """Extract infection variant information."""
-    return get_first_value(
-        row,
-        (
-            "infection_variant",
-            "variant",
-            "virus_variant",
-            "strain",
-            "viral_strain",
-        ),
-    )
-
-
 def get_platform(row):
     """Extract sequencing platform information."""
     return get_first_value(
         row,
         (
+            "Instrument",
+            "instrument_model",
             "Platform",
             "platform",
-            "sequencing_platform",
-            "instrument_model",
         ),
     )
 
 
 def get_library_type(row):
-    """Combine library strategy, layout, and selection."""
-    values = []
+    """Extract library layout (PAIRED / SINGLE)."""
+    return get_first_value(
+        row,
+        ("LibraryLayout", 
+         "library_layout"
+        )
+    )
 
-    for columns in [
-        ("LibraryStrategy", "library_strategy"),
-        ("LibraryLayout", "library_layout"),
-        ("LibrarySelection", "library_selection"),
-    ]:
-        value = get_first_value(row, columns)
+CONTROL_TYPES = {
+       "GSE208342": "uninfected",
+       "GSE273149": "disease",      # non-COVID ARDS
+       "GSE243217": "healthy",
+       "GSE202182": "healthy",
+       "GSE208076": "healthy",
+       "GSE211979": "healthy",
+       "GSE169241": "uninfected",
+       "GSE149312": "uninfected",
+       "GSE182917": "disease",      # non-COVID lung disease
+   }
 
-        if value != NA:
-            values.append(value)
+def assign_control_type(dataset_id, disease_group):
+       """Control type for control samples only."""
+       return CONTROL_TYPES[dataset_id] if disease_group == "Control" else NA
 
-    if not values:
-        return NA
 
-    return "; ".join(dict.fromkeys(values))
-
+def get_model_system(gse, tissue):
+       """Patient sample, organoid, or ES-derived cell model."""
+       if gse == "GSE149312":
+           return "organoid"
+       if "ES-derived" in tissue:
+           return "ES-derived"
+       return "patient"
 
 def map_row(gse, row):
     """Map one SRA run to the harmonized metadata schema."""
     sample_id = get_value(row, "Sample Name")
-
     if sample_id == NA:
         sample_id = get_value(row, "BioSample")
 
     run_id = get_value(row, "Run")
 
+    tissue_type = normalize_tissue(gse, row)
     disease_status = normalize_disease(gse, row)
-    
     disease_group = assign_disease_group(gse, disease_status)
 
-    disease_severity = normalize_severity(gse, row)
-
-    metadata_confidence = "high"
-
-    if gse == "GSE182917":
-        metadata_confidence = "medium"
+    # GSE182917: multi-tissue autopsy cohort, donors likely shared across
+    # organs, and controls are disease controls.
+    metadata_confidence = "medium" if gse == "GSE182917" else "high"
 
     return {
         "dataset_id": gse,
         "run_id": run_id,
         "sample_id": sample_id,
-        "tissue_type": normalize_tissue(gse, row),
+        "subject_id": get_value(row, "subject"),
+        "tissue_type": tissue_type,
+        "model_system": get_model_system(gse, tissue_type),
         "disease_status": disease_status,
         "disease_group": disease_group,
-        "disease_severity": disease_severity,
+        "control_type": assign_control_type(gse, disease_group),
+        "disease_severity": normalize_severity(gse, row),
         "treatment": get_treatment(row),
         "outcome": get_outcome(gse, row),
         "timepoint": get_timepoint(gse, row),
         "age": get_age(row),
         "sex": get_sex(row),
-        "comorbidities": get_comorbidities(row),
-        "vaccination_status": get_vaccination_status(row),
-        "infection_variant": get_infection_variant(row),
         "sequencing_platform": get_platform(row),
+        "library_layout": get_library_type(row),
         "library_type": get_library_type(row),
-        "data_source": "NCBI-GEO",
+        "data_source": "NCBI-SRA",
         "metadata_confidence": metadata_confidence,
     }
-
 
 def reconcile_values(values):
     """Reconcile metadata values across technical replicates."""
@@ -744,7 +714,7 @@ def apply_analysis_criteria(sample_metadata):
                     curated.at[
                         index,
                         "exclusion_reason",
-                    ] = "Not COVID-19 or ARDS_CON"
+                    ] = "Not COVID-19 or ARDS control"
 
         elif gse == "GSE243217":
             if "sepsis" in disease:
@@ -855,7 +825,7 @@ def apply_analysis_criteria(sample_metadata):
 
                 if tissue != "heart":
                     reason = (
-                        "ES-derived model rather than human heart"
+                        "Single-cell-type model, not heart tissue"
                     )
                 else:
                     reason = "Not COVID-19 or control heart"
