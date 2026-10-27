@@ -1,0 +1,4 @@
+moderator,total_models,tested,failed,warnings,n_FDR_below_0.05,min_pvalue,min_FDR
+Case/control ratio,25,25,0,1,0,0.008702724701585599,0.15934302258296631
+Tissue group (exploratory),25,25,0,0,0,0.0021197295043570603,0.052993237608926505
+Total sample size (per 10 samples),25,25,0,0,0,0.18871065051932726,0.8356381197665171
