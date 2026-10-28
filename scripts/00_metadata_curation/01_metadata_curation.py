@@ -31,7 +31,12 @@ Dataset-specific notes:
     GSE243217: 22 sepsis samples excluded from the primary analysis and
                kept as "specificity_analysis".
     GSE202182: 4 hantavirus and 10 non-COVID acute tubular injury (ATI)
-               samples excluded from the primary analysis.
+               samples excluded from the primary analysis. 12 re-sequenced
+               libraries (GSM6102752-GSM6102763: 4 healthy, 4 ATI,
+               4 FISH-positive) duplicate specimens already sequenced in
+               GSM6102731-GSM6102751 and are excluded to avoid
+               pseudoreplication. Primary comparison: 9 COVID-19
+               (5 FISH-negative, 4 FISH-positive) vs 6 healthy kidneys.
     GSE208076: COVID-19 and normal lung (FFPE) samples included.
     GSE211979: COVID-19 (ICU and non-ICU) and healthy samples included.
     GSE169241: Human heart tissue only. 15 ES-derived cardiomyocyte and
@@ -67,6 +72,7 @@ DATASETS = [
     "GSE149312",
     "GSE182917",
 ]
+RESEQUENCED_GSE202182 = {f"GSM{n}" for n in range(6102752, 6102764)}
 
 DATASET_TISSUES = {
     "GSE208342": "Nasopharyngeal",
@@ -334,12 +340,18 @@ def assign_disease_group(dataset_id, disease_status):
             return "COVID-19"
         if disease == "uninfected_heart":
             return "Control"
+        if "es-derived cardiomyocyte" in disease:
+            return "Excluded_ES-derived_cardiomyocyte"
+        if "es-derived" in disease and "macrophage" in disease:
+            return "Excluded_ES-derived_macrophage"
+        if "es-derived" in disease and "machrophage" in disease:
+            return "Excluded_ES-derived_macrophage"
 
     elif dataset_id == "GSE149312":
         if disease == "sars-cov-2 infected":
             return "COVID-19"
         if disease == "sars-cov infected":
-            return "SARS-COV"
+            return "SARS-CoV"
         if disease == "control (untreated)":
             return "Control"
 
@@ -523,8 +535,7 @@ def get_platform(row):
         ),
     )
 
-
-def get_library_type(row):
+def get_library_layout(row):
     """Extract library layout (PAIRED / SINGLE)."""
     return get_first_value(
         row,
@@ -551,12 +562,12 @@ def assign_control_type(dataset_id, disease_group):
 
 
 def get_model_system(gse, tissue):
-       """Patient sample, organoid, or ES-derived cell model."""
+       """Human sample, organoid, or ES-derived cell model."""
        if gse == "GSE149312":
            return "organoid"
        if "ES-derived" in tissue:
            return "ES-derived"
-       return "patient"
+       return "human_sample"
 
 def map_row(gse, row):
     """Map one SRA run to the harmonized metadata schema."""
@@ -591,8 +602,7 @@ def map_row(gse, row):
         "age": get_age(row),
         "sex": get_sex(row),
         "sequencing_platform": get_platform(row),
-        "library_layout": get_library_type(row),
-        "library_type": get_library_type(row),
+        "library_layout": get_library_layout(row),
         "data_source": "NCBI-SRA",
         "metadata_confidence": metadata_confidence,
     }
@@ -768,6 +778,13 @@ def apply_analysis_criteria(sample_metadata):
                     index,
                     "exclusion_reason",
                 ] = "Non-COVID acute tubular injury"
+            
+            elif (
+                row["sample_id"] in RESEQUENCED_GSE202182
+                and disease in {"covid-19", "control"}
+            ):
+                curated.at[index, "inclusion_status"] = "excluded"
+                curated.at[index, "exclusion_reason"] = "Re-sequenced duplicate library of an included specimen"
 
             elif disease in {
                 "covid-19",
@@ -1069,7 +1086,6 @@ def main():
         OUTPUT_DIR,
         exist_ok=True,
     )
-
     run_frames = []
     input_run_counts = {}
 

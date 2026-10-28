@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # 02_primary_analysis_sample_distribution.R
-# Summarize and visualize primary-analysis sample distribution.
+# Summarize and visualize primary analysis sample distribution.
 
 # Load required packages
 suppressPackageStartupMessages({
@@ -12,8 +12,6 @@ suppressPackageStartupMessages({
   library(scales)        # Format plot axes and tick marks
   library(gtsummary)     # Format publication-ready tables
   library(gt)            # Create Word documents
-  library(flextable)     # Format tables for Word documents
-  library(officer)       # Create and edit Word documents
 })
 
 # Define project root
@@ -60,12 +58,12 @@ datasets <- c(
 tissue_mapping <- c(
   "GSE208342" = "Nasopharyngeal",
   "GSE273149" = "PBMC",
-  "GSE243217" = "Peripheral blood",
+  "GSE243217" = "PBMC",
   "GSE202182" = "Kidney",
   "GSE208076" = "Lung",
   "GSE211979" = "Blood",
   "GSE169241" = "Heart",
-  "GSE149312" = "Gut organoid",
+  "GSE149312" = "Intestinal organoids",
   "GSE182917" = "Lung"
 )
 
@@ -127,7 +125,7 @@ tissue_check <- primary_samples %>%
 
 print(tissue_check, n = Inf)
 
-# Count biological samples by dataset and disease group
+# Count samples by dataset and disease group
 sample_counts <- primary_samples %>%
   count(dataset_id, disease_group, name = "sample_count") %>%
   complete(
@@ -284,7 +282,7 @@ sample_distribution <- sample_distribution_table %>%
   # Add explanatory footnote
   tab_source_note(
     source_note = paste(
-      "Sample counts represent samples selected for the primary analysis based on metadata curation, before quality control."
+      "Sample counts are samples selected for the primary analysis after metadata curation, before quality control."
     )
   ) %>%
   # Italicize the footnote
@@ -304,6 +302,17 @@ gtsave(
     "sample_distribution.html"
   )
 )
+# Save the formatted table as DOCX
+temp_docx <- tempfile(fileext = ".docx")
+gtsave(sample_distribution, filename = temp_docx)
+
+file.copy(
+  temp_docx,
+  file.path(TABLE_DIR, "sample_distribution.docx"),
+  overwrite = TRUE
+)
+
+unlink(temp_docx)
 
 # Create the primary analysis sample-distribution figure
 plot_data <- sample_counts %>%
@@ -358,9 +367,9 @@ sample_distribution_plot <- ggplot(
     expand = expansion(mult = c(0, 0.12))
   ) +
   labs(
-    title = "Primary-Analysis sample distribution",
+    title = "Primary analysis sample distribution",
     x = "Discovery datasets (tissue type)",
-    y = "Number of biological samples",
+    y = "Number of samples",
     fill = "Disease Group"
   ) +
   theme_classic(base_size = 11) +
