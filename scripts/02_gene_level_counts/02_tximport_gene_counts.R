@@ -7,7 +7,7 @@
 # Load required packages
 suppressPackageStartupMessages({
   library(tximport)    # Import Salmon quantifications and summarize transcript-level estimates to gene-level
-  library(readr)       # Read metadata and write gene-level count and length tables
+  library(readr)       # Read metadata and write gene-level count
   library(dplyr)       # Filter, select, and organize metadata and sequencing-run information
 })
 
