@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Quantify RNA-seq reads using Salmon 
+# 04_Quantify RNA-seq reads using Salmon 
 # Dataset: GSE149312 
 
 # Set the path to the Salmon index 

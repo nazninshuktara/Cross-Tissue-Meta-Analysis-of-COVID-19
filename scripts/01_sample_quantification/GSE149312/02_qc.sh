@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Run quality check with FastQC and MultiQC
+# 02_Run quality check with FastQC and MultiQC
 # Dataset: GSE149312
 
 # Input: FASTQ files in fastq/GSE149312/*.fastq.gz

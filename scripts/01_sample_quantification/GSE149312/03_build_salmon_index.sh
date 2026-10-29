@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# 03_build_human_salmon_index
+# Dataset: GSE149312
+
 # Step 1. Download the latest GENCODE files
 # Visit: https://www.gencodegenes.org/human/
 # Fasta files > Transcript sequences > Right Click on Fasta > Copy link address > Paste here 

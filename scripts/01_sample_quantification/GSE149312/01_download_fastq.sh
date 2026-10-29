@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Download FASTQ files using parallel-fastq-dump
+# 01_Download FASTQ files using parallel-fastq-dump
 # Dataset: GSE149312
 
 # Reads accessions from inputs/discovery/GSE149312_SRR_Acc_List.txt
