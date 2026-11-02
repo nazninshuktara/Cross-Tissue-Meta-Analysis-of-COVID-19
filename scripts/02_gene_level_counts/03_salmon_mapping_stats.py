@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-# 03_salmon_mapping_stats
+"""
+# 03_salmon_mapping_stats.py
 # Dataset: all discovery datasets
 
-"""
 Summarize Salmon quantification for the samples carried forward into the primary
 analysis and build Supplementary Table S3 (one row per dataset).
 
@@ -31,7 +31,7 @@ QC_DIR = ROOT / "outputs" / "qc"
 OUT_DIR = ROOT / "outputs" / "mapping_stats" 
 
 STATS_FILE = OUT_DIR / "salmon_run_stats.tsv"
-SUMMARY_FILE = OUT_DIR / "mapping_summary.csv"
+SUMMARY_FILE = OUT_DIR / "Supplementary_Table_S3.csv"
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -139,6 +139,5 @@ table["FastQC version"] = table["Dataset"].map(fastqc_version)
 table["MultiQC version"] = table["Dataset"].map(multiqc_version)
 
 # Step 6. Save
-table.to_csv(OUT_DIR / "mapping_summary.csv", index=False)
-print(f"Saved: {OUT_DIR / 'mapping_summary.csv'}")
-print(table.to_string(index=False))
+table.to_csv(SUMMARY_FILE, index=False)
+print(f"Saved: {SUMMARY_FILE}")
