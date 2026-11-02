@@ -2,7 +2,7 @@
 
 # 02_tximport_gene_counts.R
 # Import Salmon quantification, summarize transcript-level estimates at the gene level,
-# and aggregate technical runs for each biological sample.
+# and aggregate technical runs for each sample.
 
 # Load required packages
 suppressPackageStartupMessages({
@@ -37,7 +37,7 @@ QUANT_DIR <- file.path(
   "salmon_out"
 )
 
-# Directory for storing gene-level count and length tables
+# Directory for storing gene-level count
 OUTPUT_DIR <- file.path(
   PROJECT_ROOT, 
   "outputs", 
@@ -104,7 +104,7 @@ if (anyNA(metadata$dataset_id) ||
   stop("Included metadata contains missing dataset, sample, or run IDs.")
 }
 
-# Each dataset/sample combination must identify one biological sample
+# Each dataset/sample combination must identify one sample
 if (anyDuplicated(metadata[c("dataset_id", "sample_id")])) {
   stop("Duplicate dataset_id + sample_id rows found in included metadata.")
 }
@@ -164,7 +164,7 @@ if (anyDuplicated(tx2gene$transcript_id)) {
 tx2gene <- as.data.frame(tx2gene)
 
 # Report expected primary-analysis input size
-message("Included biological samples: ", nrow(metadata))
+message("Included samples: ", nrow(metadata))
 message("Included sequencing runs: ", nrow(run_map))
 message("Datasets to process: ", n_distinct(metadata$dataset_id))
 message("Mapping transcript IDs: ", nrow(tx2gene))
@@ -200,7 +200,7 @@ for (dataset in unique(metadata$dataset_id)) {
   }
 
   message("  Runs imported: ", length(quant_files))
-  message("  Biological samples: ", nrow(dataset_metadata))
+  message("  samples: ", nrow(dataset_metadata))
   
   # Import Salmon quantifications and summarize transcripts to genes
   txi <- tximport(
@@ -211,7 +211,7 @@ for (dataset in unique(metadata$dataset_id)) {
     countsFromAbundance = "no"
   )
   
-  # Group technical runs by biological sample within this dataset.
+  # Group technical runs by sample within this dataset.
   dataset_run_map <- dataset_map |>
     dplyr::select(sample_id, run_id)
   
@@ -248,12 +248,14 @@ for (dataset in unique(metadata$dataset_id)) {
       gene_counts,
       check.names = FALSE
     ),
-    file.path(OUTPUT_DIR, paste0("gene_counts_", dataset, ".csv"))
+    file.path(OUTPUT_DIR,
+              paste0("gene_counts_", 
+                     dataset, ".csv"))
   )
   
   message("  Gene-level count matrix: ",
           nrow(gene_counts), " genes x ",
-          ncol(gene_counts), " biological samples")
+          ncol(gene_counts), " samples")
 }
 message("\nAll datasets processed successfully.")
 
@@ -311,7 +313,7 @@ readr::write_csv(
 message(
   "Combined gene count matrix: ",
   nrow(combined_counts), " genes x ",
-  length(sample_cols), " biological samples"
+  length(sample_cols), " samples"
 )
 message("\nGene-level count processing completed.")
 
