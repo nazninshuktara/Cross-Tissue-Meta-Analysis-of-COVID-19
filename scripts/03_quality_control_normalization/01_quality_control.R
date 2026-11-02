@@ -211,8 +211,59 @@ for (dataset in DATASETS) {
   cat(
     dataset, ": sample IDs match;",
     length(metadata_samples),
-    "biological samples\n"
+    "Samples\n"
   )
+}
+
+# Define sample-level QC threshold
+# Minimum library size (total gene-level counts) required to retain a sample
+MIN_LIBRARY_SIZE <- 100000
+
+# Exclude samples with very low library size
+# Library size is the total gene-level count per sample
+sample_library_sizes <- dplyr::bind_rows(
+  lapply(DATASETS, function(dataset) {
+    
+    count_values <- as.matrix(
+      count_matrices[[dataset]][, -1, drop = FALSE]
+    )
+    
+    tibble::tibble(
+      dataset_id = dataset,
+      sample_id = colnames(count_values),
+      library_size = colSums(count_values)
+    )
+  })
+)
+
+qc_excluded_samples <- sample_library_sizes %>%
+  dplyr::filter(library_size < MIN_LIBRARY_SIZE)
+
+# Save library sizes of all eligible samples and the excluded samples
+readr::write_csv(
+  sample_library_sizes,
+  file.path(TABLE_DIR, "library_size_all_eligible_samples.csv")
+)
+
+readr::write_csv(
+  qc_excluded_samples,
+  file.path(TABLE_DIR, "qc_excluded_samples.csv")
+)
+
+cat("Samples excluded by library-size QC:", nrow(qc_excluded_samples), "\n")
+print(qc_excluded_samples, n = Inf)
+
+# Remove excluded samples from metadata
+# Count matrices are aligned to metadata sample IDs in the next step
+metadata <- metadata %>%
+  dplyr::anti_join(
+    qc_excluded_samples %>%
+      dplyr::select(dataset_id, sample_id),
+    by = c("dataset_id", "sample_id")
+  )
+
+if (!all(DATASETS %in% unique(metadata$dataset_id))) {
+  stop("A discovery dataset has no samples after library-size QC.")
 }
 
 # Calculate library sizes and filter low-count genes
@@ -478,11 +529,13 @@ readr::write_csv(
 # Quantify dataset-associated variation in PC1
 dataset_model <- stats::lm(PC1 ~ dataset_id, data = pca_coordinates)
 dataset_R2 <- summary(dataset_model)$r.squared
+dataset_adjusted_R2 <- summary(dataset_model)$adj.r.squared
 
 readr::write_csv(
   tibble::tibble(
     model = "PC1 ~ dataset_id",
-    R_squared = dataset_R2
+    R_squared = dataset_R2,
+    adjusted_R_squared = dataset_adjusted_R2
   ),
   file.path(TABLE_DIR, "dataset_associated_PC1_variation.csv")
 )
@@ -646,9 +699,10 @@ ggsave(
 # Print QC summary
 cat("\nGene-level count QC completed successfully.\n")
 cat("Datasets:", length(DATASETS), "\n")
-cat("Primary biological samples:", nrow(combined_metadata), "\n")
+cat("Primary analysis samples after library-size QC:", nrow(combined_metadata), "\n")
 cat("Common filtered genes:", length(common_genes), "\n")
 cat("PC1 variance explained:", round(pca_variance$variance_percent[1], 2), "%\n")
 cat("PC2 variance explained:", round(pca_variance$variance_percent[2], 2), "%\n")
 cat("PC1 samples flagged:", sum(pca_coordinates$outlier_PC1), "\n")
 cat("Dataset-associated PC1 R-squared:", round(dataset_R2, 4), "\n")
+cat("Dataset-associated PC1 adjusted R-squared:", round(dataset_adjusted_R2, 4), "\n")
