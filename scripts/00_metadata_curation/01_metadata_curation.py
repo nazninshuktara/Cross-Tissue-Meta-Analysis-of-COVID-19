@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Metadata curation for the COVID-19 cross-tissue meta-analysis.
+01_Metadata curation for the COVID-19 cross-tissue meta-analysis.
 
 Input:
     inputs/discovery/*_SraRunTable.csv
@@ -76,8 +76,8 @@ RESEQUENCED_GSE202182 = {f"GSM{n}" for n in range(6102752, 6102764)}
 
 DATASET_TISSUES = {
     "GSE208342": "Nasopharyngeal",
-    "GSE273149": "PBMC",
-    "GSE243217": "PBMC",
+    "GSE273149": "Blood",
+    "GSE243217": "Blood",
     "GSE202182": "Kidney",
     "GSE208076": "Lung",
     "GSE211979": "Blood",
@@ -220,10 +220,10 @@ def normalize_tissue(gse, row):
         return "Nasopharyngeal"
 
     if "pbmc" in tissue_lower:
-        return "PBMC"
+        return "Blood"
 
     if "peripheral blood" in tissue_lower:
-        return "PBMC"
+        return "Blood"
 
     if tissue_lower == "blood":
         return "Blood"

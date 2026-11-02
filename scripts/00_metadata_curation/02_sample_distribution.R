@@ -57,8 +57,8 @@ datasets <- c(
 # Define tissue labels for table and figure
 tissue_mapping <- c(
   "GSE208342" = "Nasopharyngeal",
-  "GSE273149" = "PBMC",
-  "GSE243217" = "PBMC",
+  "GSE273149" = "Blood",
+  "GSE243217" = "Blood",
   "GSE202182" = "Kidney",
   "GSE208076" = "Lung",
   "GSE211979" = "Blood",
@@ -127,7 +127,7 @@ print(tissue_check, n = Inf)
 
 # Count samples by dataset and disease group
 sample_counts <- primary_samples %>%
-  count(dataset_id, disease_group, name = "sample_count") %>%
+  dplyr::count(dataset_id, disease_group, name = "sample_count") %>%
   complete(
     dataset_id = datasets,
     disease_group = c("COVID-19", "Control"),
@@ -282,7 +282,7 @@ sample_distribution <- sample_distribution_table %>%
   # Add explanatory footnote
   tab_source_note(
     source_note = paste(
-      "Sample counts are samples selected for the primary analysis after metadata curation, before quality control."
+      "Total sample counts reflect the samples selected for the primary analysis after metadata curation, before quality control (QC)."
     )
   ) %>%
   # Italicize the footnote

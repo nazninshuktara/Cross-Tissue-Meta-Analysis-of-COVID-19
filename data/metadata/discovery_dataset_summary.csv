@@ -1,7 +1,7 @@
 dataset_id,tissue_type,run_count,sample_count,included_count,excluded_count,specificity_count,covid_count,control_count
 GSE208342,Nasopharyngeal,80,20,20,0,0,15,5
-GSE273149,PBMC,49,49,13,36,0,9,4
-GSE243217,PBMC,72,72,50,0,22,35,15
+GSE273149,Blood,49,49,13,36,0,9,4
+GSE243217,Blood,72,72,50,0,22,35,15
 GSE202182,Kidney,74,37,15,22,0,9,6
 GSE208076,Lung,10,10,10,0,0,7,3
 GSE211979,Blood,21,21,21,0,0,16,5
