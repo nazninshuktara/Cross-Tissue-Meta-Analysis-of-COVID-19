@@ -5,7 +5,7 @@
 # Dataset: all discovery datasets
 
 Summarize Salmon quantification for the samples carried forward into the primary
-analysis and build Supplementary Table S3 (one row per dataset).
+analysis and build mapping summary(one row per dataset).
 
 Inputs
   data/metadata/metadata_curated_sample.csv   curated sample metadata (run_id = comma-separated runs)
@@ -14,7 +14,7 @@ Inputs
 
 Outputs
   outputs/mapping_stats/salmon_run_stats.tsv           run-level statistics (all quantified runs)
-  outputs/mapping_stats/Supplementary_Table_S3.csv     dataset-level summary
+  outputs/mapping_stats/mapping_summary.csv            dataset-level summary
 """
 
 import json
@@ -31,7 +31,7 @@ QC_DIR = ROOT / "outputs" / "qc"
 OUT_DIR = ROOT / "outputs" / "mapping_stats" 
 
 STATS_FILE = OUT_DIR / "salmon_run_stats.tsv"
-SUMMARY_FILE = OUT_DIR / "Supplementary_Table_S3.csv"
+SUMMARY_FILE = OUT_DIR / "mapping_summary.csv"
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
