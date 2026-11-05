@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # 01_quality_control.R
-# Perform library-size QC, gene filtering, VST, global PCA, and outlier detection.
+# Perform library-size QC, gene filtering, VST, global PCA, and outliers detection.
 
 # Load required packages
 suppressPackageStartupMessages({
@@ -493,37 +493,10 @@ if (anyNA(pca_coordinates$dataset_id)) {
   stop("Missing metadata for one or more PCA samples.")
 }
 
-# Flag extreme PC1 values
-pc1_sd <- sd(pca_coordinates$PC1)
-
-if (is.finite(pc1_sd) && pc1_sd > 0) {
-  pca_coordinates <- pca_coordinates %>%
-    dplyr::mutate(
-      PC1_z = (PC1 - mean(PC1)) / pc1_sd,
-      outlier_PC1 = abs(PC1_z) > 3
-    )
-} else {
-  pca_coordinates <- pca_coordinates %>%
-    dplyr::mutate(
-      PC1_z = 0,
-      outlier_PC1 = FALSE
-    )
-}
-
-# Save PCA coordinates and outlier table
+# Save PCA coordinates
 readr::write_csv(
   pca_coordinates,
   file.path(TABLE_DIR, "PCA_coordinates.csv")
-)
-
-readr::write_csv(
-  pca_coordinates %>%
-    dplyr::select(
-      sample_id, dataset_id, tissue_type,
-      disease_status, disease_group,
-      PC1, PC1_z, outlier_PC1
-    ),
-  file.path(TABLE_DIR, "PCA_outliers.csv")
 )
 
 # Quantify dataset-associated variation in PC1
@@ -540,12 +513,10 @@ readr::write_csv(
   file.path(TABLE_DIR, "dataset_associated_PC1_variation.csv")
 )
 
-# Prepare library-size summary for plotting
-library_size_summary <- dplyr::bind_rows(library_sizes)
-
 # Plot library sizes by dataset
+# All eligible samples are shown (before library-size QC); the dashed line is the QC threshold
 p_library_size <- ggplot(
-  library_size_summary, 
+  sample_library_sizes, 
   aes( 
     x = dataset_id, 
     y = library_size, 
@@ -557,6 +528,11 @@ p_library_size <- ggplot(
     alpha = 0.85, 
     outlier.shape = 21, 
     outlier.size = 1.8 
+  ) +
+  geom_hline(
+    yintercept = MIN_LIBRARY_SIZE,
+    linetype = "dashed",
+    color = "red"
   ) +
   scale_y_log10() + 
   scale_fill_brewer(palette = "Set3") + 
@@ -575,58 +551,6 @@ p_library_size <- ggplot(
       hjust = 1 ), 
     legend.position = "none" 
   )
-
-ggsave( 
-  file.path(PLOT_DIR, "library_sizes.pdf"), 
-  plot = p_library_size, 
-  width = 10, 
-  height = 6 
-)
-  
-# Plot PCA by dataset
-p_pca_dataset <- ggplot(
-  pca_coordinates, 
-  aes( 
-    x = PC1, 
-    y = PC2, 
-    color = dataset_id
-    
-  )
-) + 
-  geom_point( 
-    size = 3, 
-    alpha = 0.85 
-  ) +
-  scale_color_brewer(palette = "Set1") +
-  labs(
-    title = "Global PCA by Dataset",
-    x = paste0(
-      "PC1 (",
-      round(pca_variance$variance_percent[1], 2),
-      "%)"
-    ),
-    y = paste0(
-      "PC2 (",
-      round(pca_variance$variance_percent[2], 2),
-      "%)"
-    ),
-    color = "Dataset"
-  ) +
-  theme_classic(base_size = 12) +
-  theme(
-    plot.title = element_text(
-      face = "bold",
-      hjust = 0.5
-    ),
-    legend.position = "right"
-  )
-
-ggsave(
-  file.path(PLOT_DIR, "PCA_by_dataset.pdf"),
-  plot = p_pca_dataset,
-  width = 10,
-  height = 7
-)
 
 # Plot PCA by disease group
 p_pca_disease <- ggplot(
@@ -660,16 +584,9 @@ p_pca_disease <- ggplot(
   theme( plot.title = element_text( 
     face = "bold", 
     hjust = 0.5 
-    ), 
-    legend.position = "right" 
+  ), 
+  legend.position = "right" 
   )
-  
-ggsave( 
-  file.path(PLOT_DIR, "PCA_by_disease_group.pdf"), 
-  plot = p_pca_disease, 
-  width = 10, 
-  height = 7 
-)
   
 # Save high-resolution PNG versions 
 ggsave(  
@@ -696,6 +613,134 @@ ggsave(
   dpi = 300 
 )
 
+# Save QC-passed metadata and filtered count matrices
+# Reload curated metadata to retain all columns needed for differential expression
+curated_metadata <- readr::read_csv(
+  METADATA_FILE,
+  show_col_types = FALSE
+)
+
+qc_passed_metadata <- curated_metadata %>%
+  dplyr::filter(inclusion_status == "included") %>%
+  dplyr::anti_join(
+    qc_excluded_samples %>%
+      dplyr::select(dataset_id, sample_id),
+    by = c("dataset_id", "sample_id")
+  )
+
+# Validate QC-passed metadata against the filtered count matrices
+if (nrow(qc_passed_metadata) != nrow(metadata)) {
+  stop("QC-passed metadata does not match the QC-filtered sample set.")
+}
+
+for (dataset in DATASETS) {
+  
+  matrix_samples <- colnames(filtered_matrices[[dataset]])
+  
+  passed_samples <- qc_passed_metadata %>%
+    dplyr::filter(dataset_id == dataset) %>%
+    dplyr::pull(sample_id)
+  
+  if (!setequal(matrix_samples, passed_samples)) {
+    stop(dataset, ": filtered matrix samples do not match QC-passed metadata.")
+  }
+}
+
+# Directory for storing QC-filtered count matrices
+FILTERED_DIR <- file.path(OUTPUT_DIR, "filtered_counts")
+
+dir.create(FILTERED_DIR, recursive = TRUE, showWarnings = FALSE)
+
+readr::write_csv(
+  qc_passed_metadata,
+  file.path(TABLE_DIR, "metadata_qc_passed.csv")
+)
+
+for (dataset in DATASETS) {
+  
+  readr::write_csv(
+    as.data.frame(filtered_matrices[[dataset]]) %>%
+      tibble::rownames_to_column("gene_id"),
+    file.path(FILTERED_DIR, paste0("filtered_counts_", dataset, ".csv"))
+  )
+}
+
+cat("QC-passed samples saved:", nrow(qc_passed_metadata), "\n")
+
+# Detect outliers within each dataset
+# Robust z-scores (median and MAD) are used because ordinary z-scores
+# cannot exceed (n - 1) / sqrt(n), which is too small in small datasets
+MIN_OUTLIER_SAMPLES <- 5
+OUTLIER_RZ_CUTOFF <- 3.5
+
+robust_z <- function(x) {
+  
+  mad_value <- stats::mad(x)
+  
+  if (mad_value == 0) {
+    return(rep(0, length(x)))
+  }
+  
+  (x - stats::median(x)) / mad_value
+}
+
+within_dataset_outliers <- list()
+
+for (dataset in DATASETS) {
+  
+  dataset_counts <- filtered_matrices[[dataset]]
+  
+  if (ncol(dataset_counts) < MIN_OUTLIER_SAMPLES) {
+    next
+  }
+  
+  # Variance-stabilize each dataset separately
+  dataset_dds <- DESeq2::DESeqDataSetFromMatrix(
+    countData = round(dataset_counts),
+    colData = data.frame(
+      sample_id = colnames(dataset_counts),
+      row.names = colnames(dataset_counts)
+    ),
+    design = ~ 1
+  )
+  
+  dataset_dds <- DESeq2::estimateSizeFactors(dataset_dds)
+  
+  dataset_vsd <- DESeq2::vst(
+    dataset_dds,
+    blind = TRUE
+  )
+  
+  dataset_pca <- prcomp(
+    t(SummarizedExperiment::assay(dataset_vsd)),
+    center = TRUE,
+    scale. = FALSE
+  )
+  
+  within_dataset_outliers[[dataset]] <- tibble::tibble(
+    dataset_id = dataset,
+    sample_id = colnames(dataset_counts),
+    PC1_robust_z = robust_z(dataset_pca$x[, 1]),
+    PC2_robust_z = robust_z(dataset_pca$x[, 2])
+  ) %>%
+    dplyr::mutate(
+      outlier_within_dataset = abs(PC1_robust_z) > OUTLIER_RZ_CUTOFF |
+        abs(PC2_robust_z) > OUTLIER_RZ_CUTOFF
+    )
+}
+
+within_dataset_outliers_df <- dplyr::bind_rows(within_dataset_outliers)
+
+# Validate that every QC-passed sample was assessed
+if (nrow(within_dataset_outliers_df) != nrow(metadata)) {
+  stop("Within-dataset outlier table does not cover all QC-passed samples.")
+}
+
+readr::write_csv(
+  within_dataset_outliers_df,
+  file.path(TABLE_DIR, "PCA_outliers_within_dataset.csv")
+)
+
 # Print QC summary
 cat("\nGene-level count QC completed successfully.\n")
 cat("Datasets:", length(DATASETS), "\n")
@@ -703,6 +748,6 @@ cat("Primary analysis samples after library-size QC:", nrow(combined_metadata), 
 cat("Common filtered genes:", length(common_genes), "\n")
 cat("PC1 variance explained:", round(pca_variance$variance_percent[1], 2), "%\n")
 cat("PC2 variance explained:", round(pca_variance$variance_percent[2], 2), "%\n")
-cat("PC1 samples flagged:", sum(pca_coordinates$outlier_PC1), "\n")
 cat("Dataset-associated PC1 R-squared:", round(dataset_R2, 4), "\n")
 cat("Dataset-associated PC1 adjusted R-squared:", round(dataset_adjusted_R2, 4), "\n")
+cat("Samples flagged within datasets:", sum(within_dataset_outliers_df$outlier_within_dataset), "\n")
