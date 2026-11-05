@@ -5,7 +5,7 @@
 
 # Load required packages
 suppressPackageStartupMessages({
-  library(DESeq2)   # RNA-seq count processing and VST transformation
+  library(DESeq2)   # Size-factor estimation
   library(dplyr)    # Data manipulation
   library(readr)    # Read and write CSV files
   library(tibble)   # Tidy data frame utilities
@@ -15,19 +15,21 @@ suppressPackageStartupMessages({
 PROJECT_ROOT <- "."
 
 # Input directories and files
-# Gene counts
-COUNT_DIR <- file.path(
+# QC-filtered gene counts
+FILTERED_DIR <- file.path(
   PROJECT_ROOT,
   "outputs",
-  "gene_counts"
+  "gene_counts_qc",
+  "filtered_counts"
 )
 
-# Curated sample-level metadata.
+# QC-passed sample metadata
 METADATA_FILE <- file.path(
   PROJECT_ROOT,
-  "data",
-  "metadata",
-  "metadata_curated_sample.csv"
+  "outputs",
+  "gene_counts_qc",
+  "tables",
+  "metadata_qc_passed.csv"
 )
 
 # Output directory
@@ -58,11 +60,6 @@ DATASETS <- c(
   "GSE182917"
 )
 
-# Samples excluded after quality control
-QC_EXCLUDED_SAMPLES <- c(
-  "GSM6896317"
-)
-
 # Read curated sample-level metadata
 metadata <- readr::read_csv(
   METADATA_FILE,
@@ -73,8 +70,7 @@ metadata <- readr::read_csv(
 metadata <- metadata %>%
   filter(
     inclusion_status == "included",
-    dataset_id %in% DATASETS,
-    !sample_id %in% QC_EXCLUDED_SAMPLES
+    dataset_id %in% DATASETS
   )
 
 if (anyDuplicated(metadata$sample_id)) {
@@ -111,10 +107,10 @@ for (dataset in DATASETS) {
   
   cat("\nProcessing:", dataset, "\n")
   
-  # Define gene-count input file
+  # Define QC-filtered gene-count input file
   count_file <- file.path(
-    COUNT_DIR,
-    paste0("gene_counts_", dataset, ".csv")
+    FILTERED_DIR,
+    paste0("filtered_counts_", dataset, ".csv")
   )
   
   if (!file.exists(count_file)) {
@@ -151,28 +147,6 @@ for (dataset in DATASETS) {
   # Round estimated counts for DESeq2
   count_matrix <- round(count_matrix)
   storage.mode(count_matrix) <- "integer"
-  
-  # Filter low-count genes
-  min_samples <- max(
-    1L,
-    ceiling(
-      0.10 * ncol(count_matrix)
-    )
-  )
-  
-  keep_genes <- rowSums(
-    count_matrix >= 10
-  ) >= min_samples
-  
-  count_matrix <- count_matrix[
-    keep_genes,
-    ,
-    drop = FALSE
-  ]
-  
-  if (nrow(count_matrix) == 0) {
-    stop("No genes remain after filtering in ", dataset)
-  }
   
   cat("Samples:", ncol(count_matrix), "\n")
   cat("Genes after filtering:", nrow(count_matrix), "\n")
@@ -270,8 +244,6 @@ write_csv(
 
 # Report final summary
 cat("\nNormalization completed successfully.\n\n")
-
 cat("Datasets:", length(DATASETS), "\n")
-cat("\nSamples excluded after QC:",paste(QC_EXCLUDED_SAMPLES, collapse = ", "),"\n")
 cat("Samples normalized:", nrow(size_factors_all), "\n")
 cat("Output directory:", OUTPUT_DIR, "\n\n")
